@@ -56,10 +56,7 @@ a { text-decoration: none; }
   gap: 24px; width: 100%; max-width: 440px; position: relative; z-index: 1;
 }
 .brand-area { text-align: center; color: white; }
-.brand-logo {
-  font-size: 3rem; font-weight: 800; color: white; letter-spacing: .05em;
-  margin-bottom: 8px;
-}
+.brand-logo { width: 200px; max-width: 70%; height: auto; margin-bottom: 14px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.18)); }
 .brand-subtitle { font-size: .85rem; color: rgba(255,255,255,.6); }
 
 .login-card {
@@ -135,7 +132,7 @@ a { text-decoration: none; }
   box-shadow: var(--shadow-sm);
 }
 .nav-brand { display: flex; align-items: center; }
-.nav-logo { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+.nav-logo { display: block; height: 34px; width: auto; }
 .nav-right { display: flex; align-items: center; gap: 14px; }
 .user-badge {
   display: flex; align-items: center; gap: 10px;
@@ -510,10 +507,112 @@ tr:hover td { background: rgba(0,88,255,.025); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 680px) {
+/* ══ RESPONSIVE ════════════════════════════════════════════ */
+
+/* ── Tablets (max 900px) ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .navbar { padding: 0 20px; }
+  .dashboard-main { padding: 24px 20px; }
+
+  .prof-layout { grid-template-columns: 200px 1fr; }
+
+  .exam-header { padding: 0 20px; }
+  .exam-content { padding: 22px 20px; }
+  .exam-footer { padding: 12px 20px; }
+
+  .resultado-card { padding: 32px; }
+  .login-card { padding: 30px; }
+}
+
+/* ── Mobile (max 640px) ──────────────────────────────────── */
+@media (max-width: 640px) {
+  html { font-size: 15px; }
+
+  /* Login */
+  .login-body { padding: 4vh 20px; }
+  .login-container { gap: 18px; }
+  .brand-logo { width: 150px; }
+  .login-card { padding: 26px 20px; border-radius: var(--radius-lg); }
+  .card-title { margin-bottom: 16px; }
+
+  /* Navbar */
+  .navbar { height: 60px; padding: 0 14px; }
+  .nav-logo { height: 28px; }
+  .nav-right { gap: 8px; }
+  .user-badge { padding: 5px 10px; gap: 8px; }
+  .user-name { font-size: .8rem; }
+  .user-role { font-size: .68rem; }
+  .btn-logout { padding: 7px 12px; font-size: .8rem; }
+  .user-avatar { width: 30px; height: 30px; }
+
+  .dashboard-main { padding: 18px 14px; }
+  .welcome-section { margin-bottom: 20px; }
+  .welcome-title { font-size: 1.3rem; }
+  .welcome-subtitle { font-size: .84rem; }
+
+  /* Stats bar */
+  .stats-bar { gap: 10px; }
+  .stat-card { min-width: 120px; padding: 12px 14px; }
+  .stat-number { font-size: 1.2rem; }
+  .stat-icon { width: 36px; height: 36px; font-size: 1rem; }
+
+  /* Eval cards */
+  .eval-card-full-header { padding: 18px 16px; }
+  .eval-card-full-body { padding: 18px 16px; gap: 16px; }
+  .eval-icon-lg { width: 42px; height: 42px; font-size: 1.1rem; }
+  .eval-cap-name { font-size: 1rem; }
+
+  /* Exam */
+  .exam-header { padding: 0 14px; }
+  .exam-header-top { height: 54px; gap: 10px; }
+  .exam-counter { font-size: .76rem; }
+  .exam-title-nav { font-size: .86rem; }
+  .exam-content { padding: 16px 14px; padding-bottom: 110px; }
+  .question-card { padding: 18px 14px; }
+  .option-btn { padding: 11px 13px; }
+  .option-text { font-size: .88rem; }
+
+  /* Exam footer */
+  .exam-footer { padding: 10px 14px; gap: 8px; grid-template-columns: 1fr auto 1fr; }
+  .btn-nav-arrow { padding: 0 12px; height: 40px; font-size: .82rem; }
+  .nav-center { max-width: 120px; }
+  .footer-dots { max-width: 120px; }
+  .footer-dot { width: 9px; height: 9px; }
+
+  /* Modal */
+  .modal-overlay { padding: 20px; }
+  .modal-card { padding: 24px 18px; }
+
+  /* Result */
+  .resultado-body { padding: 4vh 18px; }
+  .resultado-card { padding: 28px 20px; }
+  .resultado-score { font-size: 3rem; }
+
+  /* Profesor */
+  .section-header { flex-direction: column; gap: 12px; align-items: stretch; }
+  .section-header .btn-primary { width: 100%; }
   .prof-layout { grid-template-columns: 1fr; }
   .prof-sidebar { position: static; }
-  .exam-header { padding: 0 16px; }
-  .exam-content { padding: 18px 16px; }
-  .exam-footer { padding: 10px 16px; }
+  .cap-list { display: flex; flex-wrap: wrap; }
+  .cap-item { border-left: none; border-bottom: none; border-right: 1px solid var(--border); padding: 12px 14px; }
+  .cap-item.active { border-left-color: transparent; }
+  td, th { padding: 11px 14px; }
+  .btn-sm { padding: 6px 10px; font-size: .74rem; }
+  .eval-stats-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Very small phones (max 400px) ───────────────────────── */
+@media (max-width: 400px) {
+  .brand-logo { width: 125px; }
+  .toggle-btn { font-size: .82rem; padding: 9px 0; }
+  .nav-logo { height: 24px; }
+  .user-info { display: none; }
+  .user-badge { width: 42px; height: 42px; padding: 0; justify-content: center; border-radius: 50%; }
+  .exam-footer { grid-template-columns: 1fr; grid-template-rows: auto auto; }
+  .nav-center { grid-row: 1; justify-self: center; max-width: none; }
+  #btnPrev, #btnNext { grid-row: 2; width: 100%; justify-self: stretch; justify-content: center; }
+  #btnNext { grid-column: 1; }
+  .intentos-dots { gap: 4px; }
+  .intento-dot { width: 28px; height: 28px; }
+  .cap-item { padding: 11px 12px; font-size: .85rem; }
 }
