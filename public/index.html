@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITC Evaluaciones - Iniciar Sesion</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+
+  <div class="bg-shapes" aria-hidden="true">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+
+  <main class="login-container">
+    <div class="brand-area">
+      <div class="brand-logo">ITC</div>
+      <p class="brand-subtitle">Sistema de Evaluaciones en Linea</p>
+    </div>
+
+    <div class="login-card">
+      <h2 class="card-title">Iniciar Sesion</h2>
+
+      <div class="type-toggle" role="group">
+        <button class="toggle-btn active" data-type="alumno" type="button">Alumno</button>
+        <button class="toggle-btn" data-type="profesor" type="button">Profesor</button>
+      </div>
+
+      <form id="loginForm" class="login-form" novalidate>
+        <div class="form-group">
+          <label for="nombre" id="labelNombre">Nombre de Alumno</label>
+          <div class="input-wrapper">
+            <input type="text" id="nombre" name="nombre" placeholder="Ingresa tu nombre" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contrasena</label>
+          <div class="input-wrapper">
+            <input type="password" id="password" name="password" placeholder="Ingresa tu contrasena" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <div class="error-message" id="errorMessage" role="alert">
+          <span id="errorText"></span>
+        </div>
+
+        <button type="submit" class="btn-primary" id="loginBtn">
+          <span class="btn-text">Ingresar al sistema</span>
+          <span class="btn-loader hidden">
+            <span class="spinner"></span> Verificando...
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <footer class="login-footer">
+      <p>&copy; 2026 ITC - Sistema de Evaluaciones v1.0</p>
+    </footer>
+  </main>
+
+  <script src="/js/login.js"></script>
+</body>
+</html>

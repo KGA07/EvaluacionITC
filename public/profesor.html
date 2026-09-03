@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITC Evaluaciones - Panel Profesor</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">ITC</div>
+    </div>
+    <div class="nav-right">
+      <div class="user-badge">
+        <div class="user-avatar" id="userInitial">P</div>
+        <div class="user-info">
+          <span class="user-name" id="userName">Profesor</span>
+          <span class="user-role">Instructor</span>
+        </div>
+      </div>
+      <button class="btn-logout" id="logoutBtn">Salir</button>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+    <div class="welcome-section">
+      <h1 class="welcome-title">Panel de Instructor</h1>
+      <p class="welcome-subtitle">Gestiona alumnos y revisa resultados de evaluaciones.</p>
+    </div>
+
+    <div id="loadingState" class="loading-container">
+      <div class="loading-spinner"></div>
+      <span>Cargando datos...</span>
+    </div>
+
+    <div id="profContent" class="hidden">
+      <div class="stats-bar" id="statsBar"></div>
+
+      <div class="prof-layout">
+        <aside class="prof-sidebar">
+          <div class="sidebar-title">Acciones</div>
+          <ul class="cap-list">
+            <li class="cap-item active" data-view="alumnos">Gestionar Alumnos</li>
+            <li class="cap-item" data-view="estadisticas">Estadisticas por Evaluacion</li>
+          </ul>
+        </aside>
+
+        <div class="prof-panel">
+          <div id="viewAlumnos">
+            <div class="section-header">
+              <h2 class="section-title">Alumnos Registrados</h2>
+              <button class="btn-primary" id="btnNewStudent" style="width:auto;padding:0 20px;">+ Nuevo Alumno</button>
+            </div>
+            <div class="table-card">
+              <div class="table-wrapper">
+                <table id="alumnosTable">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Usuario</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="alumnosBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="viewEstadisticas" class="hidden"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+      <div class="modal-title" id="modalTitle">Nuevo Alumno</div>
+      <form id="studentForm" class="login-form">
+        <div class="form-group">
+          <label for="studentNombre">Nombre completo</label>
+          <div class="input-wrapper">
+            <input type="text" id="studentNombre" placeholder="Ej: Juan Perez" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="studentUsuario">Usuario (login)</label>
+          <div class="input-wrapper">
+            <input type="text" id="studentUsuario" placeholder="Ej: jperez" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="studentPassword">Contrasena</label>
+          <div class="input-wrapper">
+            <input type="text" id="studentPassword" placeholder="Contrasena inicial" required>
+          </div>
+        </div>
+        <div class="error-message" id="modalError"><span id="modalErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnModalCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnModalSave">Crear Alumno</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-card">
+      <div class="modal-title">Cambiar Contrasena</div>
+      <form id="passwordForm" class="login-form">
+        <div class="form-group">
+          <label for="newPassword">Nueva contrasena</label>
+          <div class="input-wrapper">
+            <input type="text" id="newPassword" placeholder="Nueva contrasena" required>
+          </div>
+        </div>
+        <input type="hidden" id="passwordUserId">
+        <div class="error-message" id="pwModalError"><span id="pwModalErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnPwCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnPwSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/profesor.js"></script>
+</body>
+</html>

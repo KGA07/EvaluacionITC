@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITC Evaluaciones - Examen</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="exam-body">
+
+  <header class="exam-header">
+    <div class="exam-header-top">
+      <button class="btn-back" id="btnBack" type="button">&larr; Salir</button>
+      <div class="exam-title-nav" id="examTitle">Evaluacion</div>
+      <div class="exam-counter">
+        <span id="answeredCount">0</span> / <span id="totalCount">0</span> respondidas
+      </div>
+    </div>
+    <div class="exam-progress-bar">
+      <div class="exam-progress-fill" id="progressFill" style="width: 0%;"></div>
+    </div>
+  </header>
+
+  <div class="exam-content" id="examContent">
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <span>Cargando evaluacion...</span>
+    </div>
+  </div>
+
+  <footer class="exam-footer" id="examFooter">
+    <button class="btn-nav-arrow" id="btnPrev" type="button" disabled>
+      &larr; <span>Anterior</span>
+    </button>
+    <div class="nav-center">
+      <div class="footer-dots" id="footerDots"></div>
+      <span id="footerText">1 / 10</span>
+    </div>
+    <button class="btn-nav-arrow" id="btnNext" type="button">
+      <span id="btnNextLabel">Siguiente</span> &rarr;
+    </button>
+  </footer>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+      <div class="modal-icon">&#9888;</div>
+      <div class="modal-title">Envias el examen?</div>
+      <div class="modal-text" id="modalText">Una vez enviado no podras modificar tus respuestas.</div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" id="btnModalCancel" type="button">Revisar</button>
+        <button class="btn-modal-confirm" id="btnModalConfirm" type="button">Confirmar envio</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/evaluacion.js"></script>
+</body>
+</html>
