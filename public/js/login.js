@@ -1,5 +1,3 @@
-const API_BASE = '/api';
-
 const loginForm     = document.getElementById('loginForm');
 const nombreInput   = document.getElementById('nombre');
 const passwordInput = document.getElementById('password');
@@ -12,9 +10,8 @@ const btnLoader     = loginBtn.querySelector('.btn-loader');
 
 let selectedType = 'alumno';
 
-if (sessionStorage.getItem('token')) {
-  const tipo = sessionStorage.getItem('tipo');
-  window.location.replace(tipo === 'profesor' ? '/profesor' : '/dashboard');
+if (Session.getToken()) {
+  window.location.replace(Session.getTipo() === 'profesor' ? '/profesor' : '/dashboard');
 }
 
 document.querySelectorAll('.toggle-btn').forEach((btn) => {
@@ -22,8 +19,8 @@ document.querySelectorAll('.toggle-btn').forEach((btn) => {
     document.querySelectorAll('.toggle-btn').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
     selectedType = btn.dataset.type;
-    labelNombre.textContent  = selectedType === 'profesor' ? 'Nombre de Instructor' : 'Nombre de Alumno';
-    nombreInput.placeholder  = selectedType === 'profesor' ? 'Ingresa tu usuario de instructor' : 'Ingresa tu usuario';
+    labelNombre.textContent = selectedType === 'profesor' ? 'Nombre de Instructor' : 'Nombre de Alumno';
+    nombreInput.placeholder = selectedType === 'profesor' ? 'Ingresa tu usuario de instructor' : 'Ingresa tu usuario';
     hideError();
     nombreInput.focus();
   });
@@ -50,19 +47,20 @@ loginForm.addEventListener('submit', async (e) => {
 
   setLoading(true);
   try {
-    const res  = await fetch(`${API_BASE}/login`, {
+    const res = await fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre, password, tipo: selectedType }),
     });
     const data = await res.json();
 
+    if (res.status === 429) {
+      showError(data.error || 'Demasiados intentos. Intenta mas tarde.');
+      return;
+    }
     if (!res.ok) { showError(data.error || 'Error al iniciar sesion.'); return; }
 
-    sessionStorage.setItem('token', data.token);
-    sessionStorage.setItem('tipo',  data.tipo);
-    sessionStorage.setItem('nombre', data.nombre);
-    sessionStorage.setItem('nombre_completo', data.nombre_completo);
+    Session.set(data.token, data.refreshToken, data.tipo, data.nombre, data.nombre_completo);
 
     if (data.tipo === 'alumno') {
       window.location.replace('/dashboard');

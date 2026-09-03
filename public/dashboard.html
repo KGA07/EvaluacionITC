@@ -12,17 +12,22 @@
 
   <nav class="navbar">
     <div class="nav-brand">
-      <img src="/img/logo-itc.svg" alt="ITS" class="nav-logo">
+      <img src="/img/logo-itc.svg" alt="ITC" class="nav-logo">
     </div>
     <div class="nav-right">
-      <div class="user-badge">
-        <div class="user-avatar" id="userInitial">A</div>
-        <div class="user-info">
-          <span class="user-name" id="userName">alumno</span>
-          <span class="user-role">Alumno</span>
+      <div class="account-menu">
+        <div class="user-badge" id="userMenuBtn">
+          <div class="user-avatar" id="userInitial">A</div>
+          <div class="user-info">
+            <span class="user-name" id="userName">alumno</span>
+            <span class="user-role">Alumno</span>
+          </div>
+        </div>
+        <div class="account-dropdown" id="accountDropdown">
+          <button class="account-dropdown-item" id="btnChangePassword">Cambiar contrasena</button>
+          <button class="account-dropdown-item" id="btnLogout">Cerrar sesion</button>
         </div>
       </div>
-      <button class="btn-logout" id="logoutBtn">Salir</button>
     </div>
   </nav>
 
@@ -30,6 +35,10 @@
     <div class="welcome-section">
       <h1 class="welcome-title">Bienvenido/a, <span id="welcomeName">Alumno</span></h1>
       <p class="welcome-subtitle" id="welcomeSub">Tus evaluaciones disponibles.</p>
+      <div class="view-tabs">
+        <button class="view-tab active" data-view="evaluaciones">Evaluaciones</button>
+        <button class="view-tab" data-view="historial">Mi historial</button>
+      </div>
     </div>
 
     <div id="loadingState" class="loading-container">
@@ -38,8 +47,36 @@
     </div>
 
     <div id="evalContainer" class="hidden"></div>
+    <div id="historialContainer" class="hidden"></div>
   </main>
 
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-card">
+      <div class="modal-title">Cambiar Contrasena</div>
+      <form id="passwordForm" class="login-form">
+        <div class="form-group">
+          <label for="pwActual">Contrasena actual</label>
+          <div class="input-wrapper">
+            <input type="password" id="pwActual" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="pwNueva">Nueva contrasena</label>
+          <div class="input-wrapper">
+            <input type="password" id="pwNueva" required>
+          </div>
+        </div>
+        <div class="error-message" id="pwError"><span id="pwErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnPwCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnPwSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/ui.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

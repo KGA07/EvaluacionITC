@@ -1,34 +1,40 @@
-const API_BASE = '/api';
-const token = sessionStorage.getItem('token');
-const tipo  = sessionStorage.getItem('tipo');
+const token = Session.getToken();
+const tipo  = Session.getTipo();
 
 if (!token || tipo !== 'alumno') window.location.replace('/');
 
 const evalId = parseInt(sessionStorage.getItem('evalId'));
 if (!evalId) window.location.replace('/dashboard');
 
+const EXAM_MINUTES = 15; // duración del examen en minutos
+
 let evaluacion   = null;
 let respuestas   = [];
 let currentIndex = 0;
 let isAnimating  = false;
+let timerRef     = null;
+let timeLeft     = 0;
+const DRAFT_KEY  = `draft_${evalId}`;
 
-document.getElementById('btnBack').addEventListener('click', () => {
-  if (confirm('Seguro que queres salir? Perderas tu progreso en este intento.')) {
-    window.location.replace('/dashboard');
-  }
+document.getElementById('btnBack').addEventListener('click', async () => {
+  const salir = await showConfirm({
+    title: 'Salir de la evaluacion?',
+    message: 'Tu progreso se guardara y podras retomarlo si vuelves a esta evaluacion.',
+    confirmText: 'Salir',
+    danger: true
+  });
+  if (salir) window.location.replace('/dashboard');
 });
 
 async function loadEvaluacion() {
   try {
-    const res = await fetch(`${API_BASE}/evaluacion/${evalId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.status === 401) { sessionStorage.clear(); window.location.replace('/'); return; }
+    const res = await apiFetch(`/evaluacion/${evalId}`);
+    if (res.status === 401) { Session.clear(); window.location.replace('/'); return; }
     const data = await res.json();
     if (!res.ok) {
       document.getElementById('examContent').innerHTML = `
         <div class="loading-container" style="padding-top:10vh;">
-          <h3>Evaluacion no disponible</h3><p>${data.error}</p>
+          <h3>Evaluacion no disponible</h3><p>${parseError(data)}</p>
           <a href="/dashboard" style="margin-top:16px;color:var(--primary);font-weight:600;">Volver al inicio</a>
         </div>`;
       document.getElementById('examFooter')?.remove();
@@ -36,13 +42,22 @@ async function loadEvaluacion() {
     }
 
     evaluacion = data;
-    respuestas = new Array(data.totalPreguntas).fill(null);
-
     document.getElementById('examTitle').textContent  = data.titulo;
     document.getElementById('totalCount').textContent = data.totalPreguntas;
 
+    // Restaurar borrador si existe
+    const draft = loadDraft();
+    if (draft && draft.preguntas === data.totalPreguntas) {
+      respuestas = draft.respuestas;
+      timeLeft = typeof draft.timeLeft === 'number' ? draft.timeLeft : EXAM_MINUTES * 60;
+    } else {
+      respuestas = new Array(data.totalPreguntas).fill(null);
+      timeLeft = EXAM_MINUTES * 60;
+    }
+
     buildFooterDots(data.totalPreguntas);
     renderQuestion(0, null);
+    startTimer();
   } catch (err) {
     document.getElementById('examContent').innerHTML = `
       <div class="loading-container" style="padding-top:10vh;">
@@ -50,6 +65,52 @@ async function loadEvaluacion() {
         <a href="/dashboard" style="margin-top:16px;color:var(--primary);font-weight:600;">Volver</a>
       </div>`;
   }
+}
+
+// ── Autoguardado (borrador en sessionStorage) ───────────────────────────────
+function loadDraft() {
+  try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)); } catch { return null; }
+}
+function saveDraft() {
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+      preguntas: respuestas.length,
+      respuestas,
+      timeLeft,
+      updatedAt: Date.now()
+    }));
+  } catch {}
+}
+function clearDraft() {
+  sessionStorage.removeItem(DRAFT_KEY);
+}
+
+// ── Temporizador ────────────────────────────────────────────────────────────
+function startTimer() {
+  if (timerRef) clearInterval(timerRef);
+  timerRef = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      clearInterval(timerRef);
+      timeLeft = 0;
+      updateTimerDisplay();
+      toast('Se acabo el tiempo. Enviando el examen...', 'warning');
+      setTimeout(enviarExamen, 1200);
+      return;
+    }
+    updateTimerDisplay();
+    if (timeLeft % 30 === 0) saveDraft();
+  }, 1000);
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('examTimer');
+  if (!el) return;
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  el.textContent = `\u23F1 ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  el.classList.toggle('danger', timeLeft <= 60);
 }
 
 function buildFooterDots(total) {
@@ -118,10 +179,11 @@ function renderQuestion(idx, direction) {
 
 function seleccionar(qIdx, optIdx, clickedBtn) {
   respuestas[qIdx] = optIdx;
-  document.querySelectorAll(`[data-q="${qIdx}"]`).forEach(btn =>
+  document.querySelectorAll(`[data-q="${qIdx}"]`).forEach((btn) =>
     btn.classList.toggle('selected', btn === clickedBtn)
   );
   document.getElementById(`qcard-${qIdx}`)?.classList.add('answered');
+  saveDraft();
   updateProgress();
   updateNavButtons();
 }
@@ -134,7 +196,7 @@ function goTo(idx) {
 }
 
 function updateProgress() {
-  const answered = respuestas.filter(r => r !== null).length;
+  const answered = respuestas.filter((r) => r !== null).length;
   const total    = respuestas.length;
   const pct      = total > 0 ? (answered / total) * 100 : 0;
 
@@ -154,7 +216,7 @@ function updateNavButtons() {
   if (!evaluacion) return;
   const total       = evaluacion.preguntas.length;
   const isLast      = currentIndex === total - 1;
-  const allAnswered = respuestas.every(r => r !== null);
+  const allAnswered = respuestas.every((r) => r !== null);
 
   const btnPrev      = document.getElementById('btnPrev');
   const btnNext      = document.getElementById('btnNext');
@@ -180,17 +242,20 @@ document.getElementById('btnPrev').addEventListener('click', () => {
 document.getElementById('btnNext').addEventListener('click', () => {
   if (!evaluacion) return;
   const isLast = currentIndex === evaluacion.preguntas.length - 1;
-
   if (isLast) {
-    if (!respuestas.every(r => r !== null)) return;
-    document.getElementById('modalText').innerHTML =
-      `Estas por enviar tu examen (intento ${evaluacion.intentoActual} de 3). ` +
-      `Una vez enviado no podras modificar tus respuestas.`;
-    document.getElementById('modalOverlay').classList.add('visible');
+    if (!respuestas.every((r) => r !== null)) return;
+    abrirConfirmacion();
   } else {
     goTo(currentIndex + 1);
   }
 });
+
+function abrirConfirmacion() {
+  document.getElementById('modalText').innerHTML =
+    `Estas por enviar tu examen (intento ${evaluacion.intentoActual} de 3). ` +
+    `Una vez enviado no podras modificar tus respuestas.`;
+  document.getElementById('modalOverlay').classList.add('visible');
+}
 
 document.getElementById('btnModalCancel').addEventListener('click', () => {
   document.getElementById('modalOverlay').classList.remove('visible');
@@ -200,31 +265,29 @@ document.getElementById('btnModalConfirm').addEventListener('click', async () =>
   const confirmBtn = document.getElementById('btnModalConfirm');
   confirmBtn.disabled = true;
   confirmBtn.textContent = 'Enviando...';
-
-  try {
-    const res  = await fetch(`${API_BASE}/resultado`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body:    JSON.stringify({ evaluacionId: evalId, respuestas }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al enviar');
-
-    sessionStorage.setItem('resultado', JSON.stringify(data));
-    document.getElementById('modalOverlay').classList.remove('visible');
-    window.location.replace('/resultado');
-  } catch (err) {
-    document.getElementById('modalOverlay').classList.remove('visible');
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Confirmar envio';
-    alert(`Error: ${err.message}`);
-  }
+  await enviarExamen();
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = 'Confirmar envio';
 });
 
-function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str || '';
-  return d.innerHTML;
+async function enviarExamen() {
+  try {
+    const res = await apiFetch('/resultado', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evaluacionId: evalId, respuestas }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(parseError(data));
+
+    clearDraft();
+    sessionStorage.setItem('resultado', JSON.stringify(data));
+    document.getElementById('modalOverlay')?.classList.remove('visible');
+    window.location.replace('/resultado');
+  } catch (err) {
+    document.getElementById('modalOverlay')?.classList.remove('visible');
+    toast(`Error: ${err.message}`, 'error');
+  }
 }
 
 loadEvaluacion();

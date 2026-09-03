@@ -1,6 +1,8 @@
 node_modules/
 db.json
 .env
+.env.local
 .DS_Store
 *.log
 svg-image-2.svg
+coverage/

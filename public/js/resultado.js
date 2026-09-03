@@ -30,18 +30,55 @@ if (!resultado) {
       </div>
       <div class="resultado-info-item">
         <span class="label">Minimo para aprobar</span>
-        <span class="value">${minimo}/${resultado.totalPreguntas} (${Math.ceil(60)}%)</span>
+        <span class="value">${minimo}/${resultado.totalPreguntas} (60%)</span>
       </div>
       <div class="resultado-info-item">
         <span class="label">Correctas</span>
-        <span class="value">${resultado.detalle.filter(d => d.esCorrecta).length}</span>
+        <span class="value">${resultado.detalle.filter((d) => d.esCorrecta).length}</span>
       </div>
       <div class="resultado-info-item">
         <span class="label">Incorrectas</span>
-        <span class="value">${resultado.detalle.filter(d => !d.esCorrecta).length}</span>
+        <span class="value">${resultado.detalle.filter((d) => !d.esCorrecta).length}</span>
       </div>
     </div>
     <div class="resultado-divider"></div>
     <a href="/dashboard" class="btn-volver">Volver a mis evaluaciones</a>
+    <button class="btn-repasar" id="btnRepasar" type="button">Revisar respuestas</button>
   `;
+
+  document.getElementById('btnRepasar').addEventListener('click', () => {
+    const detalle = document.getElementById('resultadoDetalle');
+    const visible = detalle.style.display !== 'none';
+    detalle.style.display = visible ? 'none' : 'block';
+    document.getElementById('btnRepasar').textContent = visible ? 'Revisar respuestas' : 'Ocultar respuestas';
+    if (!visible) renderDetalle();
+  });
+
+  function renderDetalle() {
+    const detalle = document.getElementById('resultadoDetalle');
+    detalle.innerHTML = `<div class="detalle-wrap">
+      <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Desglose de respuestas</h3>
+      ${resultado.detalle.map((d, i) => {
+        const letras = ['A', 'B', 'C', 'D'];
+        return `
+        <div class="detalle-item">
+          <div class="detalle-q">
+            <span class="detalle-num">${i + 1}.</span>
+            <span class="detalle-state ${d.esCorrecta ? 'ok' : 'bad'}">${d.esCorrecta ? '&#10003; Correcta' : '&#10007; Incorrecta'}</span>
+          </div>
+          <div class="detalle-pregunta">${escapeHtml(d.pregunta)}</div>
+          <div class="detalle-respuestas">
+            ${d.opciones.map((op, oi) => {
+              const isCorrect = oi === d.correcta;
+              const isUser = oi === d.respondida;
+              let cls = 'detalle-opt';
+              if (isCorrect) cls += ' correct';
+              if (isUser && !isCorrect) cls += ' wrong';
+              return `<div class="${cls}">${letras[oi]}. ${escapeHtml(op)} ${isCorrect ? '(correcta)' : ''} ${isUser && isCorrect ? '(tu respuesta)' : ''}</div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
 }

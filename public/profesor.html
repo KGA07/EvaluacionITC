@@ -53,7 +53,10 @@
           <div id="viewAlumnos">
             <div class="section-header">
               <h2 class="section-title">Alumnos Registrados</h2>
-              <button class="btn-primary" id="btnNewStudent" style="width:auto;padding:0 20px;">+ Nuevo Alumno</button>
+              <div class="section-actions">
+                <input type="search" id="searchAlumno" class="search-input" placeholder="Buscar alumno...">
+                <button class="btn-primary" id="btnNewStudent" style="width:auto;padding:0 20px;height:44px;">+ Nuevo Alumno</button>
+              </div>
             </div>
             <div class="table-card">
               <div class="table-wrapper">
@@ -72,6 +75,14 @@
           </div>
 
           <div id="viewEstadisticas" class="hidden"></div>
+
+          <div id="viewDetalle" class="hidden">
+            <div class="section-header">
+              <h2 class="section-title" id="detalleTitle">Detalle Alumno</h2>
+              <button class="btn-modal-cancel" id="btnVolverLista" style="width:auto;padding:0 18px;">Volver a alumnos</button>
+            </div>
+            <div id="detalleContainer" class="table-card" style="padding:16px;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -128,6 +139,8 @@
     </div>
   </div>
 
+  <script src="/js/common.js"></script>
+  <script src="/js/ui.js"></script>
   <script src="/js/profesor.js"></script>
 </body>
 </html>
