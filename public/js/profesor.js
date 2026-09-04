@@ -483,6 +483,7 @@ async function loadEvaluaciones() {
 const evalModal = document.getElementById('evalModal');
 const evalForm = document.getElementById('evalForm');
 const evalError = document.getElementById('evalError');
+const evalErrorText = document.getElementById('evalErrorText');
 
 document.getElementById('btnNewEval').addEventListener('click', () => {
   evalForm.reset();
