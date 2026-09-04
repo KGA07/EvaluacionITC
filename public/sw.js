@@ -1,13 +1,23 @@
 // Service Worker simple de la PWA (mejora 8.4).
 // Cachea el shell estático para permitir uso offline básico.
-const CACHE = 'itc-evaluaciones-v1';
+const CACHE = 'itc-evaluaciones-v2';
 const SHELL = [
   '/',
   '/index.html',
+  '/dashboard',
+  '/evaluacion',
+  '/resultado',
+  '/profesor',
+  '/certificado',
   '/css/styles.css',
   '/js/common.js',
   '/js/ui.js',
   '/js/login.js',
+  '/js/dashboard.js',
+  '/js/evaluacion.js',
+  '/js/resultado.js',
+  '/js/profesor.js',
+  '/js/certificado.js',
   '/img/icon.svg',
   '/img/logo-itc.svg',
   '/manifest.json'

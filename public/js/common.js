@@ -155,6 +155,12 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+// Extrae el mensaje de error de una respuesta JSON { error: '...' }
+function parseError(data) {
+  if (data && typeof data.error === 'string') return data.error;
+  return 'Error inesperado.';
+}
+
 window.toast = toast;
 window.apiFetch = apiFetch;
 window.parseError = parseError;
