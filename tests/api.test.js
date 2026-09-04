@@ -171,6 +171,39 @@ describe('ITC Evaluaciones API', () => {
         .send({ capacitacion: 'Sin preguntas', preguntas: [] });
       expect(res.status).toBe(400);
     });
+
+    it('crea evaluacion con tipos vf y desarrollo y rechaza tipos invalidos', async () => {
+      const conTipos = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          capacitacion: 'Tipos nuevos',
+          porcentaje: 50,
+          preguntas: [
+            { tipo: 'opcion', pregunta: 'P1', opciones: ['A', 'B'], correcta: 0 },
+            { tipo: 'vf', pregunta: 'P2', correcta: 1 },
+            { tipo: 'desarrollo', pregunta: 'P3' }
+          ]
+        });
+      expect(conTipos.status).toBe(200);
+      const guardada = await request(app)
+        .get(`/api/profesor/evaluaciones/${conTipos.body.id}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(guardada.status).toBe(200);
+      expect(guardada.body.preguntas[1].tipo).toBe('vf');
+      expect(guardada.body.preguntas[1].opciones).toEqual(['Verdadero', 'Falso']);
+      expect(guardada.body.preguntas[2].tipo).toBe('desarrollo');
+      expect(guardada.body.preguntas[2].opciones).toBeUndefined();
+
+      const invalida = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          capacitacion: 'Invalida',
+          preguntas: [{ tipo: 'opcion', pregunta: 'X' }]
+        });
+      expect(invalida.status).toBe(400);
+    });
   });
 
   describe('Admin', () => {
@@ -250,6 +283,60 @@ describe('ITC Evaluaciones API', () => {
       expect(res.body.totalPreguntas).toBe(10);
       expect(res.body.aprobado).toBe(true);
       expect(res.body.detalle[0].explicacion).toBeDefined();
+    });
+
+    it('tomar evaluacion con vf y desarrollo y graduar segun tipo', async () => {
+      const profToken = await loginProfesor();
+      const creada = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${profToken}`)
+        .send({
+          capacitacion: 'Tipos nuevos',
+          porcentaje: 50,
+          preguntas: [
+            { tipo: 'opcion', pregunta: 'P1', opciones: ['ROJA', 'AZUL'], correcta: 1 },
+            { tipo: 'vf', pregunta: 'La Tierra orbita el Sol', correcta: 0 },
+            { tipo: 'desarrollo', pregunta: 'Explica con tus palabras que es la gravedad' }
+          ]
+        });
+      expect(creada.status).toBe(200);
+
+      const ev = await request(app)
+        .get(`/api/evaluacion/${creada.body.id}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(ev.status).toBe(200);
+      expect(ev.body.preguntas[1].tipo).toBe('vf');
+      expect(ev.body.preguntas[1].opciones).toEqual(['Verdadero', 'Falso']);
+      expect(ev.body.preguntas[2].tipo).toBe('desarrollo');
+      expect(ev.body.preguntas[2].opciones).toBeUndefined();
+      expect(ev.body.orden[1]).toEqual([0, 1]);
+      expect(ev.body.orden[2]).toEqual([0]);
+
+      const respuestas = ev.body.orden.map((o, qi) => {
+        if (qi === 2) return 'La gravedad atrae los cuerpos con masa';
+        if (qi === 1) return 0;
+        return o.indexOf(1);
+      });
+      const res = await request(app)
+        .post('/api/resultado')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ evaluacionId: creada.body.id, respuestas, orden: ev.body.orden });
+      expect(res.status).toBe(200);
+      expect(res.body.puntaje).toBe(3);
+      expect(res.body.aprobado).toBe(true);
+      expect(res.body.detalle[2].tipo).toBe('desarrollo');
+      expect(res.body.detalle[2].esCorrecta).toBe(true);
+      expect(res.body.detalle[2].respuestaTexto).toBe('La gravedad atrae los cuerpos con masa');
+      expect(res.body.detalle[1].respondida).toBe(0);
+      expect(res.body.detalle[1].esCorrecta).toBe(true);
+
+      // El profesor puede ver el detalle del intento con la respuesta libre
+      const detalle = await request(app)
+        .get(`/api/profesor/intentos/${res.body.intentoId}`)
+        .set('Authorization', `Bearer ${profToken}`);
+      expect(detalle.status).toBe(200);
+      expect(detalle.body.intento.detalle[2].tipo).toBe('desarrollo');
+      expect(detalle.body.intento.detalle[2].respuestaTexto).toBe('La gravedad atrae los cuerpos con masa');
     });
 
     it('obtener certificado al aprobar', async () => {

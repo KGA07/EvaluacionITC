@@ -146,19 +146,55 @@ function renderQuestion(idx, direction) {
   currentIndex = idx;
   const p = evaluacion.preguntas[idx];
   const content = document.getElementById('examContent');
+  const tipo = p.tipo && p.tipo !== 'opcion' ? p.tipo : 'opcion';
 
-  const opciones = p.opciones
-    .map((texto, i) => {
-      const letra = String.fromCharCode(65 + i);
-      return `
-      <button type="button" class="option-btn ${respuestas[idx] === i ? 'selected' : ''}"
-        data-q="${idx}" data-opt="${i}"
-        onclick="seleccionar(${idx}, ${i}, this)">
-        <span class="option-letter">${letra}</span>
-        <span class="option-text">${escapeHtml(texto)}</span>
-      </button>`;
-    })
-    .join('');
+  const tipoLabel = { opcion: 'Opcion multiple', vf: 'Verdadero o Falso', desarrollo: 'Respuesta libre' }[tipo] || 'Opcion multiple';
+
+  let cuerpo;
+  if (tipo === 'desarrollo') {
+    const valor = typeof respuestas[idx] === 'string' ? respuestas[idx] : '';
+    cuerpo = `
+      <div class="question-type">${tipoLabel}</div>
+      <textarea class="respuesta-libre" id="respuesta-${idx}" rows="5"
+        placeholder="Escribe tu respuesta con tus propias palabras..."
+        oninput="responderTexto(${idx}, this)">${escapeHtml(valor)}</textarea>`;
+  } else if (tipo === 'vf') {
+    const etiquetas = [
+      { idx: 0, label: 'Verdadero', icon: '\u2713' },
+      { idx: 1, label: 'Falso', icon: '\u2717' }
+    ];
+    cuerpo = `
+      <div class="question-type">${tipoLabel}</div>
+      <div class="options-grid vf-grid">
+        ${etiquetas
+          .map(
+            (op) => `
+        <button type="button" class="option-btn vf-btn ${respuestas[idx] === op.idx ? 'selected' : ''}"
+          data-q="${idx}" data-opt="${op.idx}"
+          onclick="seleccionar(${idx}, ${op.idx}, this)">
+          <span class="vf-icon">${op.icon}</span>
+          <span class="option-text">${op.label}</span>
+        </button>`
+          )
+          .join('')}
+      </div>`;
+  } else {
+    const opciones = p.opciones
+      .map((texto, i) => {
+        const letra = String.fromCharCode(65 + i);
+        return `
+        <button type="button" class="option-btn ${respuestas[idx] === i ? 'selected' : ''}"
+          data-q="${idx}" data-opt="${i}"
+          onclick="seleccionar(${idx}, ${i}, this)">
+          <span class="option-letter">${letra}</span>
+          <span class="option-text">${escapeHtml(texto)}</span>
+        </button>`;
+      })
+      .join('');
+    cuerpo = `
+      <div class="question-type">${tipoLabel}</div>
+      <div class="options-grid">${opciones}</div>`;
+  }
 
   const newCard = document.createElement('div');
   newCard.className = `question-card${respuestas[idx] !== null ? ' answered' : ''}`;
@@ -166,7 +202,7 @@ function renderQuestion(idx, direction) {
   newCard.innerHTML = `
     <div class="question-number">Pregunta ${p.id} <span class="question-of">de ${evaluacion.totalPreguntas}</span></div>
     <div class="question-text">${escapeHtml(p.pregunta)}</div>
-    <div class="options-grid">${opciones}</div>`;
+    ${cuerpo}`;
 
   if (direction && !isAnimating) {
     isAnimating = true;
@@ -212,6 +248,16 @@ function seleccionar(qIdx, optIdx, clickedBtn) {
   updateNavButtons();
 }
 window.seleccionar = seleccionar;
+
+function responderTexto(qIdx, el) {
+  const texto = el.value;
+  respuestas[qIdx] = texto.trim() === '' ? null : texto;
+  document.getElementById(`qcard-${qIdx}`)?.classList.toggle('answered', !!respuestas[qIdx]);
+  saveDraft();
+  updateProgress();
+  updateNavButtons();
+}
+window.responderTexto = responderTexto;
 
 function goTo(idx) {
   if (isAnimating || !evaluacion) return;

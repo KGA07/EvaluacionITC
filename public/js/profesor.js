@@ -485,16 +485,227 @@ const evalForm = document.getElementById('evalForm');
 const evalError = document.getElementById('evalError');
 const evalErrorText = document.getElementById('evalErrorText');
 
+// ── Editor visual de preguntas ───────────────────────────────────────────────
+const preguntasEditor = document.getElementById('preguntasEditor');
+const btnQAdd = document.getElementById('btnQAdd');
+let preguntasEd = [];
+
+function nuevaPregunta() {
+  return { tipo: 'opcion', pregunta: '', opciones: ['', ''], correcta: null, explicacion: '' };
+}
+
+function escapeAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderPreguntasEditor() {
+  const count = document.getElementById('qCount');
+  count.textContent = preguntasEd.length === 1 ? '1 pregunta' : `${preguntasEd.length} preguntas`;
+  preguntasEditor.innerHTML = preguntasEd
+    .map((p, i) => {
+      const head = `
+        <div class="q-card-head">
+          <span class="q-card-title">Pregunta ${i + 1}</span>
+          <select class="q-tipo" data-i="${i}" title="Tipo de pregunta">
+            <option value="opcion" ${p.tipo === 'opcion' ? 'selected' : ''}>Opcion multiple</option>
+            <option value="vf" ${p.tipo === 'vf' ? 'selected' : ''}>Verdadero / Falso</option>
+            <option value="desarrollo" ${p.tipo === 'desarrollo' ? 'selected' : ''}>Respuesta libre</option>
+          </select>
+          <div class="q-card-btns">
+            <button type="button" class="btn-sm" data-act="up" data-i="${i}" title="Subir">&#9650;</button>
+            <button type="button" class="btn-sm" data-act="down" data-i="${i}" title="Bajar">&#9660;</button>
+            <button type="button" class="btn-sm danger" data-act="del" data-i="${i}" title="Eliminar pregunta">Eliminar</button>
+          </div>
+        </div>`;
+
+      const enunciado = `
+        <div class="form-group">
+          <label>Enunciado</label>
+          <div class="input-wrapper">
+            <input type="text" class="q-texto" data-i="${i}" value="${escapeAttr(p.pregunta)}" placeholder="Escribe el enunciado de la pregunta...">
+          </div>
+        </div>`;
+
+      let cuerpo;
+      if (p.tipo === 'desarrollo') {
+        cuerpo = `<p class="q-editor-hint">Pregunta de respuesta libre: el alumno escribe su respuesta con sus propias palabras y se toma como correcta si responde.</p>`;
+      } else if (p.tipo === 'vf') {
+        cuerpo = `
+          <div class="q-opciones vf-editor">
+            <label class="q-vf-opt ${p.correcta === 0 ? 'selected' : ''}">
+              <input type="radio" name="correcta-${i}" class="q-vf-radio" data-i="${i}" data-val="0" ${p.correcta === 0 ? 'checked' : ''}>
+              <span>Verdadero</span>
+            </label>
+            <label class="q-vf-opt ${p.correcta === 1 ? 'selected' : ''}">
+              <input type="radio" name="correcta-${i}" class="q-vf-radio" data-i="${i}" data-val="1" ${p.correcta === 1 ? 'checked' : ''}>
+              <span>Falso</span>
+            </label>
+          </div>
+          <p class="q-editor-hint">Marca cual es la afirmacion correcta.</p>`;
+      } else {
+        cuerpo = `
+          <div class="q-opciones">
+            <span class="q-opc-legend">Opciones (marca con el circulo la respuesta correcta)</span>
+            ${(p.opciones || [])
+              .map(
+                (op, oi) => `
+            <div class="q-opc-row">
+              <span class="q-opc-letra">${String.fromCharCode(65 + oi)}</span>
+              <input type="text" class="q-opc-text" data-i="${i}" data-oi="${oi}" value="${escapeAttr(op)}" placeholder="Opcion ${oi + 1}">
+              <label class="q-opc-correct" title="Marcar como respuesta correcta">
+                <input type="radio" name="correcta-${i}" class="q-opc-radio" data-i="${i}" data-oi="${oi}" ${p.correcta === oi ? 'checked' : ''}>
+                <span>correcta</span>
+              </label>
+              <button type="button" class="btn-sm" data-act="delopc" data-i="${i}" data-oi="${oi}" title="Quitar opcion">&#10005;</button>
+            </div>`
+              )
+              .join('')}
+            ${(p.opciones || []).length < 6 ? `<button type="button" class="btn-sm" data-act="addopc" data-i="${i}">+ Agregar opcion</button>` : ''}
+          </div>`;
+      }
+
+      const explicacion = `
+        <div class="form-group">
+          <label>Explicacion (opcional)</label>
+          <div class="input-wrapper">
+            <input type="text" class="q-explic" data-i="${i}" value="${escapeAttr(p.explicacion)}" placeholder="Mostrada al alumno al revisar sus respuestas...">
+          </div>
+        </div>`;
+
+      return `<div class="q-card" data-i="${i}">${head}${enunciado}${cuerpo}${explicacion}</div>`;
+    })
+    .join('');
+}
+
+function agregarPregunta() {
+  preguntasEd.push(nuevaPregunta());
+  renderPreguntasEditor();
+}
+function eliminarPregunta(i) {
+  preguntasEd.splice(i, 1);
+  renderPreguntasEditor();
+}
+function moverPregunta(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= preguntasEd.length) return;
+  [preguntasEd[i], preguntasEd[j]] = [preguntasEd[j], preguntasEd[i]];
+  renderPreguntasEditor();
+}
+function cambiarTipo(i, tipo) {
+  preguntasEd[i].tipo = tipo;
+  if (tipo === 'desarrollo') preguntasEd[i].opciones = [];
+  else if (tipo === 'vf') preguntasEd[i].opciones = ['Verdadero', 'Falso'];
+  else if (!preguntasEd[i].opciones || preguntasEd[i].opciones.length < 2) preguntasEd[i].opciones = ['', ''];
+  preguntasEd[i].correcta = null;
+  renderPreguntasEditor();
+}
+function agregarOpcion(i) {
+  if ((preguntasEd[i].opciones || []).length >= 6) return;
+  preguntasEd[i].opciones.push('');
+  renderPreguntasEditor();
+}
+function eliminarOpcion(i, oi) {
+  if ((preguntasEd[i].opciones || []).length <= 2) return;
+  preguntasEd[i].opciones.splice(oi, 1);
+  if (preguntasEd[i].correcta === oi) preguntasEd[i].correcta = null;
+  else if (preguntasEd[i].correcta !== null && preguntasEd[i].correcta > oi) preguntasEd[i].correcta--;
+  renderPreguntasEditor();
+}
+
+btnQAdd.addEventListener('click', agregarPregunta);
+
+preguntasEditor.addEventListener('input', (e) => {
+  const el = e.target;
+  const i = el.dataset.i !== undefined ? parseInt(el.dataset.i, 10) : -1;
+  if (i < 0 || i >= preguntasEd.length) return;
+  if (el.classList.contains('q-texto')) preguntasEd[i].pregunta = el.value;
+  else if (el.classList.contains('q-explic')) preguntasEd[i].explicacion = el.value;
+  else if (el.classList.contains('q-opc-text')) {
+    const oi = parseInt(el.dataset.oi, 10);
+    preguntasEd[i].opciones[oi] = el.value;
+  }
+});
+
+preguntasEditor.addEventListener('change', (e) => {
+  const el = e.target;
+  const i = el.dataset.i !== undefined ? parseInt(el.dataset.i, 10) : -1;
+  if (i < 0 || i >= preguntasEd.length) return;
+  if (el.classList.contains('q-tipo')) {
+    cambiarTipo(i, el.value);
+  } else if (el.classList.contains('q-opc-radio')) {
+    preguntasEd[i].correcta = parseInt(el.dataset.oi, 10);
+    renderPreguntasEditor();
+  } else if (el.classList.contains('q-vf-radio')) {
+    preguntasEd[i].correcta = parseInt(el.dataset.val, 10);
+    renderPreguntasEditor();
+  }
+});
+
+preguntasEditor.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const i = parseInt(btn.dataset.i, 10);
+  const act = btn.dataset.act;
+  if (act === 'up') moverPregunta(i, -1);
+  else if (act === 'down') moverPregunta(i, 1);
+  else if (act === 'del') eliminarPregunta(i);
+  else if (act === 'addopc') agregarOpcion(i);
+  else if (act === 'delopc') eliminarOpcion(i, parseInt(btn.dataset.oi, 10));
+});
+
+function preguntasDesdeEditor() {
+  const preguntas = [];
+  for (let i = 0; i < preguntasEd.length; i++) {
+    const p = preguntasEd[i];
+    const n = i + 1;
+    const base = { tipo: p.tipo, pregunta: p.pregunta.trim(), explicacion: (p.explicacion || '').trim() };
+    if (!base.pregunta) throw new Error(`Pregunta ${n}: el enunciado es obligatorio.`);
+
+    if (p.tipo === 'desarrollo') {
+      preguntas.push(base);
+    } else if (p.tipo === 'vf') {
+      if (p.correcta === null) throw new Error(`Pregunta ${n}: indica si la afirmacion es Verdadera o Falsa.`);
+      base.correcta = p.correcta;
+      preguntas.push(base);
+    } else {
+      const crudas = (p.opciones || []).map((o) => o.trim());
+      const opciones = crudas.filter((o) => o !== '');
+      if (opciones.length < 2) throw new Error(`Pregunta ${n}: agrega al menos 2 opciones con texto.`);
+      let correcta = null;
+      let visto = 0;
+      for (let k = 0; k < crudas.length; k++) {
+        if (crudas[k] === '') continue;
+        if (k === p.correcta) {
+          correcta = visto;
+          break;
+        }
+        visto++;
+      }
+      if (correcta === null) throw new Error(`Pregunta ${n}: marca cual es la opcion correcta.`);
+      base.opciones = opciones;
+      base.correcta = correcta;
+      preguntas.push(base);
+    }
+  }
+  return preguntas;
+}
+
+// ── Modal crear/editar evaluacion ────────────────────────────────────────────
 document.getElementById('btnNewEval').addEventListener('click', () => {
   evalForm.reset();
   document.getElementById('evalActiva').checked = true;
   document.getElementById('evalIntentos').value = 3;
   document.getElementById('evalPorcentaje').value = 60;
   document.getElementById('evalDuracion').value = 15;
-  document.getElementById('evalPreguntas').value = '';
   document.getElementById('evalIdHidden').value = '';
   document.getElementById('evalModalTitle').textContent = 'Nueva Evaluacion';
   document.getElementById('btnEvalSave').textContent = 'Crear Evaluacion';
+  preguntasEd = [nuevaPregunta()];
+  renderPreguntasEditor();
   evalError.classList.remove('visible');
   evalModal.classList.add('visible');
 });
@@ -515,16 +726,27 @@ function editarEvaluacion(id) {
   document.getElementById('evalModalTitle').textContent = 'Editar Evaluacion';
   document.getElementById('btnEvalSave').textContent = 'Guardar cambios';
   evalError.classList.remove('visible');
+  preguntasEd = [];
+  document.getElementById('qCount').textContent = 'Cargando preguntas...';
+  preguntasEditor.innerHTML =
+    '<div class="loading-container" style="padding:16px 0;"><div class="loading-spinner"></div></div>';
+  evalModal.classList.add('visible');
   fetchEvaluacionParaEditar(id);
 }
 
 async function fetchEvaluacionParaEditar(id) {
-  document.getElementById('evalPreguntas').value = 'Cargando preguntas...';
   try {
     const res = await apiFetch(`/profesor/evaluaciones/${id}`);
     const data = await res.json();
     if (!res.ok) throw new Error(parseError(data));
-    document.getElementById('evalPreguntas').value = JSON.stringify(data.preguntas, null, 2);
+    preguntasEd = data.preguntas.map((p) => ({
+      tipo: p.tipo || 'opcion',
+      pregunta: p.pregunta || '',
+      opciones: p.tipo === 'desarrollo' ? [] : (p.opciones || []).slice(),
+      correcta: p.tipo === 'desarrollo' || typeof p.correcta !== 'number' ? null : p.correcta,
+      explicacion: p.explicacion || ''
+    }));
+    renderPreguntasEditor();
     evalModal.classList.add('visible');
   } catch (err) {
     evalErrorText.textContent = err.message;
@@ -539,24 +761,11 @@ evalForm.addEventListener('submit', async (e) => {
 
   let preguntas;
   try {
-    preguntas = JSON.parse(document.getElementById('evalPreguntas').value);
-  } catch {
-    evalErrorText.textContent = 'El JSON de preguntas no es valido. Verifica las comillas y comas.';
+    preguntas = preguntasDesdeEditor();
+  } catch (err) {
+    evalErrorText.textContent = err.message;
     evalError.classList.add('visible');
     return;
-  }
-  if (!Array.isArray(preguntas) || preguntas.length === 0) {
-    evalErrorText.textContent = 'Agrega al menos una pregunta.';
-    evalError.classList.add('visible');
-    return;
-  }
-  for (const p of preguntas) {
-    if (!p.pregunta || !Array.isArray(p.opciones) || p.opciones.length < 2 || typeof p.correcta !== 'number') {
-      evalErrorText.textContent =
-        'Cada pregunta necesita: pregunta (texto), opciones (array >= 2) y correcta (indice numerico).';
-      evalError.classList.add('visible');
-      return;
-    }
   }
 
   const payload = {

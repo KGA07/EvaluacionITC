@@ -129,18 +129,31 @@ async function tomarEvaluacion(req, res) {
     return res.status(400).json({ error: `Agotaste los ${intentosMax} intentos disponibles.` });
   }
 
-  // Mezcla las opciones de forma determinística por intento (mejora 8.7)
+  // Mezcla las opciones solo en preguntas de opcion multiple; las de verdadero/falso
+  // y desarrollo se muestran fijas. La respuesta libre no expone informacion extra.
   const seed = Math.floor(Math.random() * 2147483647);
   const preguntas = ev.preguntas.map((p) => {
-    const orden = p.opciones.map((_, i) => i);
-    const mezclado = shuffle(orden, seed + p.id);
+    const tipo = p.tipo || 'opcion';
+    if (tipo === 'desarrollo') {
+      return { id: p.id, tipo, pregunta: p.pregunta };
+    }
+    if (tipo === 'vf') {
+      return { id: p.id, tipo, pregunta: p.pregunta, opciones: ['Verdadero', 'Falso'] };
+    }
+    const indices = p.opciones.map((_, i) => i);
+    const mezclado = shuffle(indices, seed + p.id);
     return {
       id: p.id,
+      tipo,
       pregunta: p.pregunta,
       opciones: mezclado.map((i) => p.opciones[i])
     };
   });
+  // Orden de mezcla por pregunta (identidad para vf; sin mezcla para desarrollo)
   const orden = ev.preguntas.map((p) => {
+    const tipo = p.tipo || 'opcion';
+    if (tipo === 'desarrollo') return [0];
+    if (tipo === 'vf') return [0, 1];
     const indices = p.opciones.map((_, i) => i);
     return shuffle(indices, seed + p.id);
   });
@@ -176,10 +189,28 @@ async function resultado(req, res) {
     return res.status(400).json({ error: 'Cantidad de respuestas invalida.' });
   }
 
-  // Gradúa mapeando el índice mostrado al índice original usando el `orden`
+  // Gradúa por tipo:
+  //  - opcion/vf: mapeando el indice mostrado al original usando `orden`
+  //  - desarrollo: se toma como correcta si el alumno respondio con su texto
   let correctas = 0;
   const detalle = ev.preguntas.map((p, qIdx) => {
+    const tipo = p.tipo || 'opcion';
     const userDisp = respuestas[qIdx];
+
+    if (tipo === 'desarrollo') {
+      const texto = typeof userDisp === 'string' ? userDisp.trim() : '';
+      const esCorrecta = texto.length > 0;
+      if (esCorrecta) correctas++;
+      return {
+        preguntaId: p.id,
+        pregunta: p.pregunta,
+        tipo,
+        respuestaTexto: texto,
+        esCorrecta,
+        explicacion: p.explicacion || ''
+      };
+    }
+
     const ordenQ = Array.isArray(orden) && Array.isArray(orden[qIdx]) ? orden[qIdx] : p.opciones.map((_, i) => i);
     const userOrig = esPermutacionValida(ordenQ, p.opciones.length) ? ordenQ[userDisp] : userDisp;
     const esCorrecta = userOrig === p.correcta;
@@ -187,6 +218,7 @@ async function resultado(req, res) {
     return {
       preguntaId: p.id,
       pregunta: p.pregunta,
+      tipo,
       opciones: p.opciones,
       respondida: userOrig,
       correcta: p.correcta,
@@ -201,7 +233,7 @@ async function resultado(req, res) {
     userId: req.user.id,
     evaluacionId,
     puntaje,
-    respuestas: detalle.map((d) => d.respondida),
+    respuestas: detalle.map((d) => (d.tipo === 'desarrollo' ? d.respuestaTexto : d.respondida)),
     orden,
     fecha: new Date().toISOString()
   };
@@ -223,6 +255,7 @@ async function resultado(req, res) {
 
   res.json({
     evaluacionId,
+    intentoId: intento.id,
     puntaje,
     totalPreguntas: ev.preguntas.length,
     aprobado: esAprobado(puntaje, ev.preguntas.length, ev.porcentaje),

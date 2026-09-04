@@ -10,39 +10,41 @@ function handleValidation(req, res, next) {
   next();
 }
 
-// Valida una pregunta enviada por el profesor en el CRUD de evaluaciones
-const preguntaSchema = [
-  body('pregunta')
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage('La pregunta es obligatoria.')
-    .isLength({ max: 500 })
-    .withMessage('La pregunta es demasiado larga.'),
-  body('opciones').isArray({ min: 2, max: 6 }).withMessage('Cada pregunta debe tener entre 2 y 6 opciones.'),
-  body('opciones.*')
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage('Las opciones no pueden estar vacias.')
-    .isLength({ max: 200 })
-    .withMessage('Una opcion es demasiado larga.'),
-  body('correcta')
-    .isInt({ min: 0 })
-    .custom((v, { req }) => {
-      const opciones = req.body && req.body.opciones;
-      if (opciones && v >= opciones.length)
-        throw new Error('El indice de la respuesta correcta no coincide con las opciones.');
-      return true;
-    })
-    .withMessage('Indice de respuesta correcta invalido.'),
-  body('explicacion')
-    .optional()
-    .isString()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('La explicacion es demasiado larga.')
-];
+// Valida el array de preguntas según el tipo de cada una:
+//  - opcion:     opciones (2-6) + correcta (indice)
+//  - vf:         Verdadero/Falso, correcta 0 o 1
+//  - desarrollo: respuesta libre con palabras propias (sin opciones)
+function validarPreguntas(value) {
+  if (!Array.isArray(value) || value.length === 0) throw new Error('Debe haber al menos una pregunta.');
+  value.forEach((p, i) => {
+    const n = i + 1;
+    const tipo = p && p.tipo ? p.tipo : 'opcion';
+    if (!['opcion', 'vf', 'desarrollo'].includes(tipo)) throw new Error(`Pregunta ${n}: tipo de pregunta invalido.`);
+    if (typeof p.pregunta !== 'string' || !p.pregunta.trim()) throw new Error(`Pregunta ${n}: el enunciado es obligatorio.`);
+    if (p.pregunta.length > 500) throw new Error(`Pregunta ${n}: enunciado demasiado largo.`);
+
+    if (tipo === 'opcion') {
+      if (!Array.isArray(p.opciones) || p.opciones.length < 2 || p.opciones.length > 6)
+        throw new Error(`Pregunta ${n}: debe tener entre 2 y 6 opciones.`);
+      p.opciones.forEach((o) => {
+        if (typeof o !== 'string' || !o.trim()) throw new Error(`Pregunta ${n}: una opcion esta vacia.`);
+        if (o.length > 200) throw new Error(`Pregunta ${n}: una opcion es demasiado larga.`);
+      });
+      if (!Number.isInteger(p.correcta) || p.correcta < 0 || p.correcta >= p.opciones.length)
+        throw new Error(`Pregunta ${n}: indica cual es la opcion correcta.`);
+    } else if (tipo === 'vf') {
+      if (![0, 1].includes(p.correcta))
+        throw new Error(`Pregunta ${n}: indica si la afirmacion es Verdadera o Falsa.`);
+    }
+
+    if (p.explicacion !== undefined && (typeof p.explicacion !== 'string' || p.explicacion.length > 500))
+      throw new Error(`Pregunta ${n}: la explicacion es demasiado larga.`);
+  });
+  return true;
+}
+
+// Equivalente del validador de una sola pregunta (compatibilidad con exports)
+const preguntaSchema = [body('preguntas').custom(validarPreguntas)];
 
 const evaluacionSchema = [
   body('capacitacion')
@@ -63,7 +65,7 @@ const evaluacionSchema = [
     .isInt({ min: 1, max: 180 })
     .withMessage('La duracion debe estar entre 1 y 180 minutos.'),
   body('activa').optional().isBoolean().withMessage('El campo activa debe ser booleano.'),
-  body('preguntas').isArray({ min: 1 }).withMessage('Debe haber al menos una pregunta.')
+  body('preguntas').custom(validarPreguntas)
 ];
 
 const validations = {
@@ -155,7 +157,7 @@ const validations = {
       .isInt({ min: 1, max: 180 })
       .withMessage('La duracion debe estar entre 1 y 180 minutos.'),
     body('activa').optional().isBoolean().withMessage('El campo activa debe ser booleano.'),
-    body('preguntas').optional().isArray({ min: 1 }).withMessage('Debe haber al menos una pregunta.')
+    body('preguntas').optional().custom(validarPreguntas)
   ],
   pregunta: preguntaSchema,
   recuperarPaso1: [
@@ -200,5 +202,6 @@ module.exports = {
   query,
   validationResult,
   evaluacionSchema,
-  preguntaSchema
+  preguntaSchema,
+  validarPreguntas
 };

@@ -7,6 +7,25 @@ const { registrarLog } = require('../utils/audit');
 
 const REFRESH_TOKEN_KEY = 'refreshTokens';
 
+// Normaliza una pregunta según su tipo antes de persistirla
+function normalizarPregunta(p, id) {
+  const tipo = p.tipo === 'desarrollo' ? 'desarrollo' : p.tipo === 'vf' ? 'vf' : 'opcion';
+  const base = {
+    id,
+    tipo,
+    pregunta: String(p.pregunta).trim(),
+    explicacion: (p.explicacion && String(p.explicacion).trim()) || ''
+  };
+  if (tipo === 'opcion') {
+    base.opciones = p.opciones.map((o) => String(o).trim());
+    base.correcta = p.correcta;
+  } else if (tipo === 'vf') {
+    base.opciones = ['Verdadero', 'Falso'];
+    base.correcta = p.correcta === 0 ? 0 : 1;
+  }
+  return base;
+}
+
 // ── Lista de alumnos ───────────────────────────────────────────────────────
 async function listarAlumnos(req, res) {
   const data = await db.loadData();
@@ -143,13 +162,7 @@ async function crearEvaluacion(req, res) {
     porcentaje: porcentaje || config.defaultPorcentajeAprobacion,
     duracionMinutos: duracionMinutos || config.defaultDuracionMinutos,
     activa: activa === undefined ? true : activa,
-    preguntas: preguntas.map((p, i) => ({
-      id: i + 1,
-      pregunta: p.pregunta.trim(),
-      opciones: p.opciones.map((o) => o.trim()),
-      correcta: p.correcta,
-      explicacion: (p.explicacion && p.explicacion.trim()) || ''
-    }))
+    preguntas: preguntas.map((p, i) => normalizarPregunta(p, i + 1))
   };
 
   data.evaluaciones.push(nueva);
@@ -172,13 +185,7 @@ async function editarEvaluacion(req, res) {
   if (duracionMinutos !== undefined) ev.duracionMinutos = duracionMinutos;
   if (activa !== undefined) ev.activa = activa;
   if (preguntas !== undefined) {
-    ev.preguntas = preguntas.map((p, i) => ({
-      id: i + 1,
-      pregunta: p.pregunta.trim(),
-      opciones: p.opciones.map((o) => o.trim()),
-      correcta: p.correcta,
-      explicacion: (p.explicacion && p.explicacion.trim()) || ''
-    }));
+    ev.preguntas = preguntas.map((p, i) => normalizarPregunta(p, i + 1));
   }
   registrarLog(data, 'editar_evaluacion', { evaluacionId: evId }, req.user);
   await db.saveData();
@@ -284,12 +291,27 @@ async function detalleIntento(req, res) {
   const alumno = data.users.find((u) => u.id === intento.userId);
 
   const detalle = ev.preguntas.map((p, qIdx) => {
-    const userResp =
-      intento.respuestas && typeof intento.respuestas[qIdx] === 'number' ? intento.respuestas[qIdx] : null;
+    const tipo = p.tipo || 'opcion';
+    const raw = intento.respuestas && intento.respuestas[qIdx];
+
+    if (tipo === 'desarrollo') {
+      const texto = typeof raw === 'string' ? raw : '';
+      return {
+        preguntaId: p.id,
+        pregunta: p.pregunta,
+        tipo,
+        respuestaTexto: texto,
+        esCorrecta: texto.length > 0,
+        explicacion: p.explicacion || ''
+      };
+    }
+
+    const userResp = typeof raw === 'number' ? raw : null;
     const esCorrecta = userResp !== null && userResp === p.correcta;
     return {
       preguntaId: p.id,
       pregunta: p.pregunta,
+      tipo,
       opciones: p.opciones,
       respondida: userResp,
       correcta: p.correcta,

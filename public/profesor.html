@@ -235,12 +235,14 @@
           </label>
         </div>
         <div class="form-group">
-          <label for="evalPreguntas">Preguntas (formato JSON)</label>
-          <div class="input-wrapper">
-            <textarea id="evalPreguntas" rows="12" spellcheck="false" required placeholder='[{"pregunta":"...","opciones":["A","B","C","D"],"correcta":0,"explicacion":"..."}]'></textarea>
+          <div class="q-editor-head">
+            <label>Preguntas</label>
+            <span class="q-editor-count" id="qCount"></span>
           </div>
-          <p style="font-size:.75rem;color:var(--text-muted);margin-top:6px;">
-            Array de preguntas. <code>correcta</code> es el indice (empezando en 0) de la opcion correcta.
+          <div id="preguntasEditor" class="q-editor-list"></div>
+          <button type="button" class="btn-sm q-add-btn" id="btnQAdd">+ Agregar pregunta</button>
+          <p class="q-editor-hint">
+            Tipos de pregunta: opcion multiple, Verdadero/Falso y respuesta libre (el alumno responde con sus palabras).
           </p>
         </div>
         <input type="hidden" id="evalIdHidden">

@@ -71,14 +71,13 @@ if (!resultado) {
       ${resultado.detalle
         .map((d, i) => {
           const letras = ['A', 'B', 'C', 'D'];
-          return `
-        <div class="detalle-item">
-          <div class="detalle-q">
-            <span class="detalle-num">${i + 1}.</span>
-            <span class="detalle-state ${d.esCorrecta ? 'ok' : 'bad'}">${d.esCorrecta ? '&#10003; Correcta' : '&#10007; Incorrecta'}</span>
-          </div>
-          <div class="detalle-pregunta">${escapeHtml(d.pregunta)}</div>
-          <div class="detalle-respuestas">
+          const tipo = d.tipo && d.tipo !== 'opcion' ? d.tipo : 'opcion';
+          const cuerpo =
+            tipo === 'desarrollo'
+              ? `<div class="detalle-respuestas">
+            <div class="detalle-opcion-texto">${escapeHtml(d.respuestaTexto || '(sin respuesta)')}</div>
+          </div>`
+              : `<div class="detalle-respuestas">
             ${d.opciones
               .map((op, oi) => {
                 const isCorrect = oi === d.correcta;
@@ -89,7 +88,15 @@ if (!resultado) {
                 return `<div class="${cls}">${letras[oi]}. ${escapeHtml(op)} ${isCorrect ? '(correcta)' : ''} ${isUser && isCorrect ? '(tu respuesta)' : ''}</div>`;
               })
               .join('')}
+          </div>`;
+          return `
+        <div class="detalle-item">
+          <div class="detalle-q">
+            <span class="detalle-num">${i + 1}.</span>
+            <span class="detalle-state ${d.esCorrecta ? 'ok' : 'bad'}">${d.esCorrecta ? '&#10003; Correcta' : '&#10007; Incorrecta'}</span>
           </div>
+          <div class="detalle-pregunta">${escapeHtml(d.pregunta)}</div>
+          ${cuerpo}
           ${d.explicacion ? `<div class="detalle-explicacion"><strong>Explicacion:</strong> ${escapeHtml(d.explicacion)}</div>` : ''}
         </div>`;
         })
