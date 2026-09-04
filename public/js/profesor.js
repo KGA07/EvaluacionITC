@@ -259,6 +259,24 @@ async function verIntento(intentoId) {
     document.getElementById('intentoDetalle').innerHTML = i.detalle
       .map((d, qi) => {
         const letras = ['A', 'B', 'C', 'D'];
+        const tipo = d.tipo && d.tipo !== 'opcion' ? d.tipo : 'opcion';
+        const cuerpo =
+          tipo === 'desarrollo'
+            ? `<div class="detalle-respuestas">
+                <div class="detalle-opcion-texto">${escapeHtml(d.respuestaTexto || '(sin respuesta)')}</div>
+              </div>`
+            : `<div class="detalle-respuestas">
+                ${(d.opciones || [])
+                  .map((op, oi) => {
+                    const isCorrect = oi === d.correcta;
+                    const isUser = oi === d.respondida;
+                    let cls = 'detalle-opt';
+                    if (isCorrect) cls += ' correct';
+                    if (isUser && !isCorrect) cls += ' wrong';
+                    return `<div class="${cls}">${letras[oi]}. ${escapeHtml(op)} ${isCorrect ? '(correcta)' : ''} ${isUser && isCorrect ? '(tu respuesta)' : ''}</div>`;
+                  })
+                  .join('')}
+              </div>`;
         return `
         <div class="detalle-item">
           <div class="detalle-q">
@@ -266,18 +284,8 @@ async function verIntento(intentoId) {
             <span class="detalle-state ${d.esCorrecta ? 'ok' : 'bad'}">${d.esCorrecta ? '&#10003; Correcta' : '&#10007; Incorrecta'}</span>
           </div>
           <div class="detalle-pregunta">${escapeHtml(d.pregunta)}</div>
-          <div class="detalle-respuestas">
-            ${d.opciones
-              .map((op, oi) => {
-                const isCorrect = oi === d.correcta;
-                const isUser = oi === d.respondida;
-                let cls = 'detalle-opt';
-                if (isCorrect) cls += ' correct';
-                if (isUser && !isCorrect) cls += ' wrong';
-                return `<div class="${cls}">${letras[oi]}. ${escapeHtml(op)} ${isCorrect ? '(correcta)' : ''} ${isUser && isCorrect ? '(tu respuesta)' : ''}</div>`;
-              })
-              .join('')}
-          </div>
+          ${d.imagen ? `<div class="detalle-img"><img src="${escapeAttr(d.imagen)}" alt="Imagen de la pregunta" loading="lazy"></div>` : ''}
+          ${cuerpo}
           ${d.explicacion ? `<div class="detalle-explicacion"><strong>Explicacion:</strong> ${escapeHtml(d.explicacion)}</div>` : ''}
         </div>`;
       })
@@ -451,7 +459,9 @@ document.getElementById('btnPruebasGuardar').addEventListener('click', async () 
   pruebasError.classList.remove('visible');
   if (pruebasAlumnoId === null) return;
 
-  const marcadas = [...pruebasList.querySelectorAll('input[type="checkbox"]:checked')].map((c) => parseInt(c.value, 10));
+  const marcadas = [...pruebasList.querySelectorAll('input[type="checkbox"]:checked')].map((c) =>
+    parseInt(c.value, 10)
+  );
   try {
     const res = await apiFetch(`/profesor/alumnos/${pruebasAlumnoId}/evaluaciones`, {
       method: 'PUT',
@@ -558,7 +568,7 @@ const btnQAdd = document.getElementById('btnQAdd');
 let preguntasEd = [];
 
 function nuevaPregunta() {
-  return { tipo: 'opcion', pregunta: '', opciones: ['', ''], correcta: null, explicacion: '' };
+  return { tipo: 'opcion', pregunta: '', opciones: ['', ''], correcta: null, explicacion: '', imagen: '' };
 }
 
 function escapeAttr(s) {
@@ -594,6 +604,17 @@ function renderPreguntasEditor() {
           <label>Enunciado</label>
           <div class="input-wrapper">
             <input type="text" class="q-texto" data-i="${i}" value="${escapeAttr(p.pregunta)}" placeholder="Escribe el enunciado de la pregunta...">
+          </div>
+        </div>`;
+
+      const imagenCtrl = `
+        <div class="form-group">
+          <label>Imagen (opcional)</label>
+          <div class="q-img-ctrl">
+            ${p.imagen ? `<img src="${escapeAttr(p.imagen)}" alt="" class="q-img-preview"><button type="button" class="btn-sm danger" data-act="delimg" data-i="${i}">Quitar imagen</button>` : `<span class="q-img-empty">Adjunta una captura o imagen para acompanar la pregunta (ej: circuito en Wokwi).</span>`}
+            <label class="btn-sm btn-img-upload" style="cursor:pointer;">Subir imagen
+              <input type="file" class="q-img-file" data-i="${i}" accept="image/*" style="display:none;">
+            </label>
           </div>
         </div>`;
 
@@ -643,7 +664,7 @@ function renderPreguntasEditor() {
           </div>
         </div>`;
 
-      return `<div class="q-card" data-i="${i}">${head}${enunciado}${cuerpo}${explicacion}</div>`;
+      return `<div class="q-card" data-i="${i}">${head}${enunciado}${imagenCtrl}${cuerpo}${explicacion}</div>`;
     })
     .join('');
 }
@@ -701,7 +722,9 @@ preguntasEditor.addEventListener('change', (e) => {
   const el = e.target;
   const i = el.dataset.i !== undefined ? parseInt(el.dataset.i, 10) : -1;
   if (i < 0 || i >= preguntasEd.length) return;
-  if (el.classList.contains('q-tipo')) {
+  if (el.classList.contains('q-img-file')) {
+    procesarImagenPregunta(i, el);
+  } else if (el.classList.contains('q-tipo')) {
     cambiarTipo(i, el.value);
   } else if (el.classList.contains('q-opc-radio')) {
     preguntasEd[i].correcta = parseInt(el.dataset.oi, 10);
@@ -711,6 +734,65 @@ preguntasEditor.addEventListener('change', (e) => {
     renderPreguntasEditor();
   }
 });
+
+function procesarImagenPregunta(i, input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) {
+    toast('La imagen es demasiado grande (maximo 8 MB).', 'error');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAXDIM = 900;
+      const scale = Math.min(1, MAXDIM / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      let dataURL;
+      if (file.type === 'image/png') {
+        dataURL = canvas.toDataURL('image/png');
+        if (dataURL.length > 2900000) {
+          ctx.globalCompositeOperation = 'destination-over';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          dataURL = canvas.toDataURL('image/jpeg', 0.72);
+        }
+      } else {
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        dataURL = canvas.toDataURL('image/jpeg', 0.78);
+      }
+
+      if (dataURL.length > 3000000) {
+        toast('La imagen comprimida sigue siendo muy grande. Usa una mas pequena.', 'error');
+        input.value = '';
+        return;
+      }
+      preguntasEd[i].imagen = dataURL;
+      renderPreguntasEditor();
+    };
+    img.onerror = () => {
+      toast('No se pudo leer la imagen.', 'error');
+      input.value = '';
+    };
+    img.src = ev.target.result;
+  };
+  reader.onerror = () => {
+    toast('No se pudo leer el archivo.', 'error');
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
 
 preguntasEditor.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-act]');
@@ -722,6 +804,10 @@ preguntasEditor.addEventListener('click', (e) => {
   else if (act === 'del') eliminarPregunta(i);
   else if (act === 'addopc') agregarOpcion(i);
   else if (act === 'delopc') eliminarOpcion(i, parseInt(btn.dataset.oi, 10));
+  else if (act === 'delimg') {
+    preguntasEd[i].imagen = '';
+    renderPreguntasEditor();
+  }
 });
 
 function preguntasDesdeEditor() {
@@ -731,6 +817,7 @@ function preguntasDesdeEditor() {
     const n = i + 1;
     const base = { tipo: p.tipo, pregunta: p.pregunta.trim(), explicacion: (p.explicacion || '').trim() };
     if (!base.pregunta) throw new Error(`Pregunta ${n}: el enunciado es obligatorio.`);
+    if (p.imagen && typeof p.imagen === 'string' && p.imagen.trim()) base.imagen = p.imagen.trim();
 
     if (p.tipo === 'desarrollo') {
       preguntas.push(base);
@@ -811,7 +898,8 @@ async function fetchEvaluacionParaEditar(id) {
       pregunta: p.pregunta || '',
       opciones: p.tipo === 'desarrollo' ? [] : (p.opciones || []).slice(),
       correcta: p.tipo === 'desarrollo' || typeof p.correcta !== 'number' ? null : p.correcta,
-      explicacion: p.explicacion || ''
+      explicacion: p.explicacion || '',
+      imagen: p.imagen || ''
     }));
     renderPreguntasEditor();
     evalModal.classList.add('visible');

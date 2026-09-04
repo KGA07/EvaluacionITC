@@ -20,7 +20,8 @@ function validarPreguntas(value) {
     const n = i + 1;
     const tipo = p && p.tipo ? p.tipo : 'opcion';
     if (!['opcion', 'vf', 'desarrollo'].includes(tipo)) throw new Error(`Pregunta ${n}: tipo de pregunta invalido.`);
-    if (typeof p.pregunta !== 'string' || !p.pregunta.trim()) throw new Error(`Pregunta ${n}: el enunciado es obligatorio.`);
+    if (typeof p.pregunta !== 'string' || !p.pregunta.trim())
+      throw new Error(`Pregunta ${n}: el enunciado es obligatorio.`);
     if (p.pregunta.length > 500) throw new Error(`Pregunta ${n}: enunciado demasiado largo.`);
 
     if (tipo === 'opcion') {
@@ -33,12 +34,21 @@ function validarPreguntas(value) {
       if (!Number.isInteger(p.correcta) || p.correcta < 0 || p.correcta >= p.opciones.length)
         throw new Error(`Pregunta ${n}: indica cual es la opcion correcta.`);
     } else if (tipo === 'vf') {
-      if (![0, 1].includes(p.correcta))
-        throw new Error(`Pregunta ${n}: indica si la afirmacion es Verdadera o Falsa.`);
+      if (![0, 1].includes(p.correcta)) throw new Error(`Pregunta ${n}: indica si la afirmacion es Verdadera o Falsa.`);
     }
 
     if (p.explicacion !== undefined && (typeof p.explicacion !== 'string' || p.explicacion.length > 500))
       throw new Error(`Pregunta ${n}: la explicacion es demasiado larga.`);
+
+    if (p.imagen !== undefined && typeof p.imagen !== 'string')
+      throw new Error(`Pregunta ${n}: la imagen es invalida.`);
+    if (typeof p.imagen === 'string' && p.imagen.trim()) {
+      const img = p.imagen.trim();
+      if (!/^(https?:\/\/|data:image\/)/i.test(img)) {
+        throw new Error(`Pregunta ${n}: la imagen debe ser una URL valida o un archivo de imagen embebido.`);
+      }
+      if (img.length > 3000000) throw new Error(`Pregunta ${n}: la imagen es demasiado grande (maximo ~2 MB).`);
+    }
   });
   return true;
 }

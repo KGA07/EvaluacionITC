@@ -19,9 +19,10 @@ app.use(
   })
 );
 
-// Limitar tamaño del body (evita payloads gigantes)
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Limitar tamaño del body (evita payloads gigantes).
+// '12mb' permite evaluaciones con imagenes embebidas en base64.
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 
 // Oculta el header X-Powered-By
 app.disable('x-powered-by');

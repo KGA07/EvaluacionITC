@@ -161,11 +161,49 @@ function parseError(data) {
   return 'Error inesperado.';
 }
 
+// ── Tema visual por capacitación ────────────────────────────────────────────
+const TEMA_CAPACITACION = {
+  robotica: { etiqueta: 'Robotica' },
+  programacion: { etiqueta: 'Programacion' },
+  marketing: { etiqueta: 'Marketing' },
+  diseno: { etiqueta: 'Diseno' },
+  pc: { etiqueta: 'PC y hardware' },
+  ia: { etiqueta: 'Inteligencia Artificial' },
+  administracion: { etiqueta: 'Administracion' },
+  tecnico: { etiqueta: 'Tecnico' },
+  salud: { etiqueta: 'Salud' },
+  ingles: { etiqueta: 'Ingles' },
+  general: { etiqueta: 'General' }
+};
+
+const REGLAS_TEMA = [
+  ['robotica', /robot|mecatron|wokwi|arduino|automatismo/],
+  ['programacion', /programac|codigo|software|algoritmo|script|web\b|python|java|javascript|ruby|pascal|c\+\+/],
+  ['marketing', /marketing|publicidad|comercial|ventas|redes sociales|instagram|tiktok/],
+  ['diseno', /diseno|grafico|render|animacion|ilustracion|3d|blender|photoshop/],
+  ['pc', /\bpc\b|computador|computacion|soporte tecnico|hardware|armado/],
+  ['ia', /\bia\b|asistente|inteligencia|automat|prompt|chatgpt|gpt/],
+  ['administracion', /admin|pyme|contab|negoci|empresa|gestion/],
+  ['tecnico', /tecnico|electric|electroni|redes|soldadura|industrial|mantenimiento|maquina|civil|obra/],
+  ['salud', /salud|enfermeri|medic|cuidado/],
+  ['ingles', /ingles|idioma/]
+];
+
+function temaCapacitacion(nombre) {
+  const s = String(nombre || '').toLowerCase();
+  for (const [slug, re] of REGLAS_TEMA) {
+    if (re.test(s)) return slug;
+  }
+  return 'general';
+}
+
 window.toast = toast;
 window.apiFetch = apiFetch;
 window.parseError = parseError;
 window.logout = logout;
 window.escapeHtml = escapeHtml;
+window.temaCapacitacion = temaCapacitacion;
+window.TEMA_CAPACITACION = TEMA_CAPACITACION;
 
 // ── PWA (8.4) ───────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

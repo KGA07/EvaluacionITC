@@ -6,6 +6,14 @@ if (!token || tipo !== 'alumno') window.location.replace('/');
 const evalId = parseInt(sessionStorage.getItem('evalId'));
 if (!evalId) window.location.replace('/dashboard');
 
+function escapeAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 let evaluacion = null;
 let respuestas = [];
 let orden = [];
@@ -47,6 +55,13 @@ async function loadEvaluacion() {
     evaluacion = data;
     document.getElementById('examTitle').textContent = data.titulo;
     document.getElementById('totalCount').textContent = data.totalPreguntas;
+
+    const cap = document.getElementById('examCap');
+    if (cap) {
+      cap.textContent = data.capacitacion || '';
+      cap.hidden = !data.capacitacion;
+    }
+    document.body.dataset.tema = temaCapacitacion(data.capacitacion);
 
     const duracionMin = (data.duracionMinutos > 0 ? data.duracionMinutos : 15) * 60;
 
@@ -148,7 +163,8 @@ function renderQuestion(idx, direction) {
   const content = document.getElementById('examContent');
   const tipo = p.tipo && p.tipo !== 'opcion' ? p.tipo : 'opcion';
 
-  const tipoLabel = { opcion: 'Opcion multiple', vf: 'Verdadero o Falso', desarrollo: 'Respuesta libre' }[tipo] || 'Opcion multiple';
+  const tipoLabel =
+    { opcion: 'Opcion multiple', vf: 'Verdadero o Falso', desarrollo: 'Respuesta libre' }[tipo] || 'Opcion multiple';
 
   let cuerpo;
   if (tipo === 'desarrollo') {
@@ -202,6 +218,7 @@ function renderQuestion(idx, direction) {
   newCard.innerHTML = `
     <div class="question-number">Pregunta ${p.id} <span class="question-of">de ${evaluacion.totalPreguntas}</span></div>
     <div class="question-text">${escapeHtml(p.pregunta)}</div>
+    ${p.imagen ? `<div class="question-img"><img src="${escapeAttr(p.imagen)}" alt="Imagen de la pregunta" loading="lazy"></div>` : ''}
     ${cuerpo}`;
 
   if (direction && !isAnimating) {

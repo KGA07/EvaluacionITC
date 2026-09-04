@@ -145,18 +145,18 @@ async function tomarEvaluacion(req, res) {
   const seed = Math.floor(Math.random() * 2147483647);
   const preguntas = ev.preguntas.map((p) => {
     const tipo = p.tipo || 'opcion';
+    const base = { id: p.id, tipo, pregunta: p.pregunta, imagen: p.imagen || '' };
     if (tipo === 'desarrollo') {
-      return { id: p.id, tipo, pregunta: p.pregunta };
+      return base;
     }
     if (tipo === 'vf') {
-      return { id: p.id, tipo, pregunta: p.pregunta, opciones: ['Verdadero', 'Falso'] };
+      base.opciones = ['Verdadero', 'Falso'];
+      return base;
     }
     const indices = p.opciones.map((_, i) => i);
     const mezclado = shuffle(indices, seed + p.id);
     return {
-      id: p.id,
-      tipo,
-      pregunta: p.pregunta,
+      ...base,
       opciones: mezclado.map((i) => p.opciones[i])
     };
   });
@@ -216,6 +216,7 @@ async function resultado(req, res) {
         preguntaId: p.id,
         pregunta: p.pregunta,
         tipo,
+        imagen: p.imagen || '',
         respuestaTexto: texto,
         esCorrecta,
         explicacion: p.explicacion || ''
@@ -230,6 +231,7 @@ async function resultado(req, res) {
       preguntaId: p.id,
       pregunta: p.pregunta,
       tipo,
+      imagen: p.imagen || '',
       opciones: p.opciones,
       respondida: userOrig,
       correcta: p.correcta,
@@ -266,6 +268,8 @@ async function resultado(req, res) {
 
   res.json({
     evaluacionId,
+    capacitacion: ev.capacitacion,
+    titulo: ev.titulo,
     intentoId: intento.id,
     puntaje,
     totalPreguntas: ev.preguntas.length,

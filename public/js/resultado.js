@@ -1,6 +1,14 @@
 const resultado = JSON.parse(sessionStorage.getItem('resultado'));
 const card = document.getElementById('resultadoCard');
 
+function escAttr(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 if (!resultado) {
   card.innerHTML = `
     <div class="loading-container">
@@ -8,6 +16,7 @@ if (!resultado) {
       <a href="/dashboard" class="btn-volver" style="margin-top:16px;max-width:200px;">Volver al inicio</a>
     </div>`;
 } else {
+  document.body.dataset.tema = temaCapacitacion(resultado.capacitacion);
   const pct = Math.round((resultado.puntaje / resultado.totalPreguntas) * 100);
   const aprobado = resultado.aprobado;
   const porcentajeMin = resultado.porcentajeAprobacion || 60;
@@ -96,6 +105,7 @@ if (!resultado) {
             <span class="detalle-state ${d.esCorrecta ? 'ok' : 'bad'}">${d.esCorrecta ? '&#10003; Correcta' : '&#10007; Incorrecta'}</span>
           </div>
           <div class="detalle-pregunta">${escapeHtml(d.pregunta)}</div>
+          ${d.imagen ? `<div class="detalle-img"><img src="${escAttr(d.imagen)}" alt="Imagen de la pregunta" loading="lazy"></div>` : ''}
           ${cuerpo}
           ${d.explicacion ? `<div class="detalle-explicacion"><strong>Explicacion:</strong> ${escapeHtml(d.explicacion)}</div>` : ''}
         </div>`;

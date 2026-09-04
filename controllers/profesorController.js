@@ -16,6 +16,9 @@ function normalizarPregunta(p, id) {
     pregunta: String(p.pregunta).trim(),
     explicacion: (p.explicacion && String(p.explicacion).trim()) || ''
   };
+  if (p.imagen && typeof p.imagen === 'string' && p.imagen.trim()) {
+    base.imagen = p.imagen.trim();
+  }
   if (tipo === 'opcion') {
     base.opciones = p.opciones.map((o) => String(o).trim());
     base.correcta = p.correcta;
@@ -129,7 +132,12 @@ async function asignarEvaluaciones(req, res) {
     alumno.evaluacionesPermitidas = ids;
   }
 
-  registrarLog(data, 'asignar_evaluaciones', { alumnoId: alumno.id, cantidad: alumno.evaluacionesPermitidas ? alumno.evaluacionesPermitidas.length : -1 }, req.user);
+  registrarLog(
+    data,
+    'asignar_evaluaciones',
+    { alumnoId: alumno.id, cantidad: alumno.evaluacionesPermitidas ? alumno.evaluacionesPermitidas.length : -1 },
+    req.user
+  );
   await db.saveData();
   res.json({ ok: true });
 }
@@ -325,6 +333,7 @@ async function detalleIntento(req, res) {
         preguntaId: p.id,
         pregunta: p.pregunta,
         tipo,
+        imagen: p.imagen || '',
         respuestaTexto: texto,
         esCorrecta: texto.length > 0,
         explicacion: p.explicacion || ''
@@ -337,6 +346,7 @@ async function detalleIntento(req, res) {
       preguntaId: p.id,
       pregunta: p.pregunta,
       tipo,
+      imagen: p.imagen || '',
       opciones: p.opciones,
       respondida: userResp,
       correcta: p.correcta,

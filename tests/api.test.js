@@ -254,6 +254,44 @@ describe('ITC Evaluaciones API', () => {
         });
       expect(invalida.status).toBe(400);
     });
+
+    it('guarda y valida imagenes en las preguntas', async () => {
+      const conImagen = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          capacitacion: 'Robotica con Wokwi',
+          porcentaje: 50,
+          preguntas: [
+            {
+              tipo: 'opcion',
+              pregunta: 'Que observas en la imagen?',
+              imagen: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCA',
+              opciones: ['Un LED', 'Un motor'],
+              correcta: 0,
+              explicacion: 'Se trata de un LED.'
+            }
+          ]
+        });
+      expect(conImagen.status).toBe(200);
+
+      const guardada = await request(app)
+        .get(`/api/profesor/evaluaciones/${conImagen.body.id}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(guardada.body.preguntas[0].imagen).toMatch(/^data:image\/png;base64,/);
+
+      // Una imagen que no es URL ni data URI se rechaza
+      const invalida = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          capacitacion: 'Imagen invalida',
+          preguntas: [
+            { tipo: 'opcion', pregunta: 'X', imagen: 'esto-no-es-una-url', opciones: ['A', 'B'], correcta: 0 }
+          ]
+        });
+      expect(invalida.status).toBe(400);
+    });
   });
 
   describe('Admin', () => {
@@ -351,9 +389,7 @@ describe('ITC Evaluaciones API', () => {
         });
       expect(creada.status).toBe(200);
 
-      const ev = await request(app)
-        .get(`/api/evaluacion/${creada.body.id}`)
-        .set('Authorization', `Bearer ${token}`);
+      const ev = await request(app).get(`/api/evaluacion/${creada.body.id}`).set('Authorization', `Bearer ${token}`);
       expect(ev.status).toBe(200);
       expect(ev.body.preguntas[1].tipo).toBe('vf');
       expect(ev.body.preguntas[1].opciones).toEqual(['Verdadero', 'Falso']);
@@ -387,6 +423,43 @@ describe('ITC Evaluaciones API', () => {
       expect(detalle.status).toBe(200);
       expect(detalle.body.intento.detalle[2].tipo).toBe('desarrollo');
       expect(detalle.body.intento.detalle[2].respuestaTexto).toBe('La gravedad atrae los cuerpos con masa');
+    });
+
+    it('la evaluacion con imagen llega al alumno y al resultado con su capacitacion', async () => {
+      const profToken = await loginProfesor();
+      const creada = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${profToken}`)
+        .send({
+          capacitacion: 'Robotica con Wokwi',
+          porcentaje: 50,
+          preguntas: [
+            {
+              tipo: 'opcion',
+              pregunta: 'Cual componente ves en el esquema?',
+              imagen: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCA',
+              opciones: ['LED', 'Resistencia', 'Servo'],
+              correcta: 1
+            },
+            { tipo: 'desarrollo', pregunta: 'Describe que hace el circuito.' }
+          ]
+        });
+      expect(creada.status).toBe(200);
+
+      const ev = await request(app).get(`/api/evaluacion/${creada.body.id}`).set('Authorization', `Bearer ${token}`);
+      expect(ev.status).toBe(200);
+      expect(ev.body.capacitacion).toBe('Robotica con Wokwi');
+      expect(ev.body.preguntas[0].imagen).toBe('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCA');
+      expect(ev.body.preguntas[1].imagen).toBe('');
+
+      const respuestas = [ev.body.orden[0].indexOf(1), 'Un resistor limita el paso de corriente'];
+      const res = await request(app)
+        .post('/api/resultado')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ evaluacionId: creada.body.id, respuestas, orden: ev.body.orden });
+      expect(res.status).toBe(200);
+      expect(res.body.capacitacion).toBe('Robotica con Wokwi');
+      expect(res.body.detalle[0].imagen).toBe('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCA');
     });
 
     it('obtener certificado al aprobar', async () => {

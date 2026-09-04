@@ -1,58 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ITC Evaluaciones - Resultado</title>
-  <meta name="description" content="Resultado de tu evaluacion">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0058FF">
-  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
-    document.documentElement.dataset.fontSize = localStorage.getItem('fontSize') || '100';
-  </script>
-</head>
-<body class="resultado-body">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITC Evaluaciones - Resultado</title>
+    <meta name="description" content="Resultado de tu evaluacion" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0058FF" />
+    <link rel="icon" href="/img/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.dataset.fontSize = localStorage.getItem('fontSize') || '100';
+    </script>
+  </head>
+  <body class="resultado-body">
+    <a href="#resultadoCard" class="skip-link">Saltar al resultado</a>
 
-  <a href="#resultadoCard" class="skip-link">Saltar al resultado</a>
-
-  <header class="resultado-navbar">
-    <a href="/dashboard" class="btn-back">&larr; Volver a mis evaluaciones</a>
-    <span class="resultado-nav-title">Resultado de evaluacion</span>
-    <div>
-      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Cambiar tema oscuro/claro">Oscuro</button>
-    </div>
-  </header>
-
-  <main class="resultado-wrap">
-    <div class="resultado-card" id="resultadoCard">
-      <div class="loading-container">
-        <div class="loading-spinner"></div>
-        <span>Cargando resultado...</span>
+    <header class="resultado-navbar">
+      <a href="/dashboard" class="btn-back">&larr; Volver a mis evaluaciones</a>
+      <span class="resultado-nav-title">Resultado de evaluacion</span>
+      <div>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Cambiar tema oscuro/claro">
+          Oscuro
+        </button>
       </div>
-    </div>
+    </header>
 
-    <div class="resultado-detalle" id="resultadoDetalle" style="display:none;"></div>
-  </main>
+    <main class="resultado-wrap">
+      <div class="resultado-card" id="resultadoCard">
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <span>Cargando resultado...</span>
+        </div>
+      </div>
 
-  <script>
-    window.addEventListener('load', function () {
-      var btn = document.getElementById('themeToggle');
-      btn.textContent = (localStorage.getItem('theme') || 'light') === 'dark' ? 'Claro' : 'Oscuro';
-      btn.addEventListener('click', function () {
-        var t = (localStorage.getItem('theme') || 'light') === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('theme', t);
-        document.documentElement.dataset.theme = t;
-        btn.textContent = t === 'dark' ? 'Claro' : 'Oscuro';
+      <div class="resultado-detalle" id="resultadoDetalle" style="display: none"></div>
+    </main>
+
+    <script>
+      window.addEventListener('load', function () {
+        var btn = document.getElementById('themeToggle');
+        btn.textContent = (localStorage.getItem('theme') || 'light') === 'dark' ? 'Claro' : 'Oscuro';
+        btn.addEventListener('click', function () {
+          var t = (localStorage.getItem('theme') || 'light') === 'dark' ? 'light' : 'dark';
+          localStorage.setItem('theme', t);
+          document.documentElement.dataset.theme = t;
+          btn.textContent = t === 'dark' ? 'Claro' : 'Oscuro';
+        });
       });
-    });
-  </script>
-  <script src="/js/common.js"></script>
-  <script src="/js/ui.js"></script>
-  <script src="/js/resultado.js"></script>
-</body>
+    </script>
+    <script src="/js/common.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/resultado.js"></script>
+  </body>
 </html>
