@@ -30,8 +30,10 @@ async function cargarCertificado() {
       <div class="certificado-sheet" role="document" aria-label="Certificado de aprobacion">
         <div class="cert-top">
           <img src="/img/logo-itc.svg" alt="Instituto Tecnico de Capacitacion" class="cert-logo">
-          <div class="cert-codigo">${escapeHtml(c.codigo)}</div>
+          <span class="cert-logo-divider" aria-hidden="true"></span>
+          <img src="/img/logo-udemm.svg" alt="UDEM" class="cert-logo cert-logo-sub">
         </div>
+        <div class="cert-codigo">${escapeHtml(c.codigo)}</div>
         <div class="cert-title">Certificado de Aprobacion</div>
         <div class="cert-subtitle">Instituto Tecnico de Capacitacion</div>
         <div class="cert-ornament"></div>
