@@ -75,6 +75,14 @@ router.put(
   profCtrl.cambiarPassword
 );
 router.post('/profesor/alumnos/:alumnoId/evaluaciones/:evaluacionId/reset', auth, profAuth, profCtrl.resetearIntentos);
+router.put(
+  '/profesor/alumnos/:id/evaluaciones',
+  auth,
+  profAuth,
+  validations.asignarEvaluaciones,
+  handleValidation,
+  profCtrl.asignarEvaluaciones
+);
 
 // CRUD de evaluaciones
 router.get('/profesor/evaluaciones', auth, profAuth, profCtrl.listarEvaluaciones);

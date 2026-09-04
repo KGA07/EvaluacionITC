@@ -126,6 +126,17 @@ const validations = {
       .isLength({ min: 4, max: 100 })
       .withMessage('La nueva contrasena debe tener al menos 4 caracteres.')
   ],
+  asignarEvaluaciones: [
+    body('evaluacionesPermitidas')
+      .custom((v) => {
+        if (v === null || v === undefined) return true;
+        if (!Array.isArray(v) || !v.every((id) => Number.isInteger(Number(id)) && Number(id) >= 1)) {
+          throw new Error('Lista de evaluaciones invalida.');
+        }
+        return true;
+      })
+      .withMessage('Lista de evaluaciones invalida.')
+  ],
   resultado: [
     body('evaluacionId').isInt({ min: 1 }).withMessage('Evaluacion invalida.'),
     body('respuestas')

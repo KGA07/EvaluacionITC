@@ -11,6 +11,12 @@ const { registrarLog } = require('../utils/audit');
 const REFRESH_TOKEN_KEY = 'refreshTokens';
 const uuidv4 = crypto.randomUUID;
 
+// Un alumno solo puede rendir las evaluaciones que su profesor le asigno.
+// Si no tiene lista asignada (null), puede rendir todas.
+function estaPermitida(alumno, evaluacionId) {
+  return !Array.isArray(alumno.evaluacionesPermitidas) || alumno.evaluacionesPermitidas.includes(evaluacionId);
+}
+
 // ── Login ──────────────────────────────────────────────────────────────────
 async function login(req, res) {
   const { nombre, password, tipo } = req.body;
@@ -87,10 +93,11 @@ async function logout(req, res) {
 // ── Alumno: estado ─────────────────────────────────────────────────────────
 async function estado(req, res) {
   const data = await db.loadData();
+  const alumno = data.users.find((u) => u.id === req.user.id) || req.user;
   const intentos = data.intentos.filter((i) => i.userId === req.user.id);
 
   const evaluaciones = data.evaluaciones
-    .filter((ev) => ev.activa !== false)
+    .filter((ev) => ev.activa !== false && estaPermitida(alumno, ev.id))
     .map((ev) => {
       const intentosEv = intentos.filter((i) => i.evaluacionId === ev.id);
       const mejorPuntaje = intentosEv.length > 0 ? Math.max(...intentosEv.map((i) => i.puntaje)) : null;
@@ -117,9 +124,13 @@ async function estado(req, res) {
 // ── Alumno: tomar evaluacion ───────────────────────────────────────────────
 async function tomarEvaluacion(req, res) {
   const data = await db.loadData();
+  const alumno = data.users.find((u) => u.id === req.user.id) || req.user;
   const ev = data.evaluaciones.find((e) => e.id === parseInt(req.params.id, 10));
   if (!ev) return res.status(404).json({ error: 'Evaluacion no encontrada' });
   if (ev.activa === false) return res.status(400).json({ error: 'Evaluacion no disponible.' });
+  if (!estaPermitida(alumno, ev.id)) {
+    return res.status(403).json({ error: 'Tu instructor todavia no te asigno esta evaluacion.' });
+  }
 
   const intentosEv = data.intentos.filter((i) => i.userId === req.user.id && i.evaluacionId === ev.id);
   const intentosMax = ev.intentosMax || config.defaultIntentosMax;

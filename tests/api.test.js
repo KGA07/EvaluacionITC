@@ -112,6 +112,56 @@ describe('ITC Evaluaciones API', () => {
       const res = await request(app).get('/api/profesor/alumnos').set('Authorization', 'Bearer token-invalido');
       expect(res.status).toBe(401);
     });
+
+    it('asigna evaluaciones especificas y bloquea al alumno', async () => {
+      const creado = await request(app)
+        .post('/api/profesor/alumnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ nombre: 'prueba1', password: 'pass123', nombre_completo: 'Alumno De Prueba' });
+      expect(creado.status).toBe(200);
+
+      const login = await request(app)
+        .post('/api/login')
+        .send({ nombre: 'prueba1', password: 'pass123', tipo: 'alumno' });
+      const alumnoToken = login.body.token;
+
+      // Al inicio el alumno ve las 6 evaluaciones
+      const estadoTodas = await request(app).get('/api/estado').set('Authorization', `Bearer ${alumnoToken}`);
+      expect(estadoTodas.body.evaluaciones.length).toBe(6);
+
+      // El profesor asigna solo las evaluaciones 1 y 3
+      const asignar = await request(app)
+        .put(`/api/profesor/alumnos/${creado.body.id}/evaluaciones`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ evaluacionesPermitidas: [1, 3] });
+      expect(asignar.status).toBe(200);
+
+      // El alumno ahora solo ve las asignadas
+      const filtrado = await request(app).get('/api/estado').set('Authorization', `Bearer ${alumnoToken}`);
+      expect(filtrado.body.evaluaciones.map((e) => e.evaluacionId)).toEqual([1, 3]);
+
+      // No puede tomar una evaluacion no asignada, pero si una asignada
+      const bloqueado = await request(app).get('/api/evaluacion/2').set('Authorization', `Bearer ${alumnoToken}`);
+      expect(bloqueado.status).toBe(403);
+      const permitida = await request(app).get('/api/evaluacion/1').set('Authorization', `Bearer ${alumnoToken}`);
+      expect(permitida.status).toBe(200);
+
+      // Lista con una evaluacion inexistente se rechaza
+      const invalida = await request(app)
+        .put(`/api/profesor/alumnos/${creado.body.id}/evaluaciones`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ evaluacionesPermitidas: [999] });
+      expect(invalida.status).toBe(400);
+
+      // Sin lista asignada vuelve a tener todas habilitadas
+      const todas = await request(app)
+        .put(`/api/profesor/alumnos/${creado.body.id}/evaluaciones`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ evaluacionesPermitidas: null });
+      expect(todas.status).toBe(200);
+      const estadoFinal = await request(app).get('/api/estado').set('Authorization', `Bearer ${alumnoToken}`);
+      expect(estadoFinal.body.evaluaciones.length).toBe(6);
+    });
   });
 
   describe('Profesor: CRUD de evaluaciones', () => {

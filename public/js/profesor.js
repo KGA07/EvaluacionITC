@@ -141,6 +141,7 @@ function renderAlumnosTable(alumnos) {
       <td>
         <div class="inline-actions">
           <button class="btn-sm" onclick="verDetalle(${a.id})">Detalle / Reset</button>
+          <button class="btn-sm" onclick="asignarPruebas(${a.id})">Pruebas</button>
           <button class="btn-sm" onclick="changePassword(${a.id})">Contrasena</button>
           <button class="btn-sm danger" onclick="deleteStudent(${a.id}, '${escapeHtml(a.nombre)}')">Eliminar</button>
         </div>
@@ -406,6 +407,72 @@ function changePassword(id) {
 }
 
 document.getElementById('btnPwCancel').addEventListener('click', () => pwModal.classList.remove('visible'));
+
+// ── Asignar pruebas (evaluaciones) a un alumno ──────────────────────────────
+const pruebasModal = document.getElementById('pruebasModal');
+const pruebasList = document.getElementById('pruebasList');
+let pruebasAlumnoId = null;
+
+function asignarPruebas(alumnoId) {
+  const a = allData.alumnosDetalle.find((x) => x.id === alumnoId);
+  if (!a) return;
+  document.getElementById('pruebasTitle').textContent = `Asignar pruebas a ${a.nombre_completo}`;
+  document.getElementById('pruebasSubtitle').textContent = `${a.evaluaciones.length} evaluaciones disponibles.`;
+  const permitidas = Array.isArray(a.evaluacionesPermitidas)
+    ? a.evaluacionesPermitidas.map(Number)
+    : a.evaluaciones.map((e) => e.evaluacionId);
+  pruebasAlumnoId = a.id;
+  pruebasList.innerHTML = a.evaluaciones
+    .map(
+      (e) => `
+    <label class="pruebas-item">
+      <input type="checkbox" value="${e.evaluacionId}" ${permitidas.includes(e.evaluacionId) ? 'checked' : ''}>
+      <span class="pruebas-nombre">${escapeHtml(e.capacitacion)}</span>
+      <span class="pruebas-estado ${e.aprobado ? 'aprobado' : e.estado === 'Desaprobado' ? 'desaprobado' : 'pendiente'}">${escapeHtml(e.estado)}</span>
+    </label>`
+    )
+    .join('');
+  document.getElementById('pruebasError').classList.remove('visible');
+  pruebasModal.classList.add('visible');
+}
+window.asignarPruebas = asignarPruebas;
+
+document.getElementById('btnPruebasCancel').addEventListener('click', () => pruebasModal.classList.remove('visible'));
+document.getElementById('btnPruebasTodas').addEventListener('click', () => {
+  pruebasList.querySelectorAll('input[type="checkbox"]').forEach((c) => (c.checked = true));
+});
+document.getElementById('btnPruebasNinguna').addEventListener('click', () => {
+  pruebasList.querySelectorAll('input[type="checkbox"]').forEach((c) => (c.checked = false));
+});
+
+document.getElementById('btnPruebasGuardar').addEventListener('click', async () => {
+  const pruebasError = document.getElementById('pruebasError');
+  const pruebasErrorText = document.getElementById('pruebasErrorText');
+  pruebasError.classList.remove('visible');
+  if (pruebasAlumnoId === null) return;
+
+  const marcadas = [...pruebasList.querySelectorAll('input[type="checkbox"]:checked')].map((c) => parseInt(c.value, 10));
+  try {
+    const res = await apiFetch(`/profesor/alumnos/${pruebasAlumnoId}/evaluaciones`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evaluacionesPermitidas: marcadas })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(parseError(data));
+    pruebasModal.classList.remove('visible');
+    toast(
+      marcadas.length > 0
+        ? `Se asignaron ${marcadas.length} prueba${marcadas.length !== 1 ? 's' : ''} al alumno.`
+        : 'Alumno sin pruebas asignadas.',
+      'success'
+    );
+    loadData();
+  } catch (err) {
+    pruebasErrorText.textContent = err.message;
+    pruebasError.classList.add('visible');
+  }
+});
 
 pwForm.addEventListener('submit', async (e) => {
   e.preventDefault();

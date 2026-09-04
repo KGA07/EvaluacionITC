@@ -110,6 +110,30 @@ async function resetearIntentos(req, res) {
   res.json({ ok: true, mensaje: `Intentos reiniciados para ${alumno.nombre_completo} en ${ev.capacitacion}.` });
 }
 
+// ── Asignar evaluaciones (pruebas) a un alumno ───────────────────────────────
+async function asignarEvaluaciones(req, res) {
+  const data = await db.loadData();
+  const alumno = data.users.find((u) => u.id === parseInt(req.params.id, 10) && u.tipo === 'alumno');
+  if (!alumno) return res.status(404).json({ error: 'Alumno no encontrado.' });
+
+  const { evaluacionesPermitidas } = req.body;
+  if (evaluacionesPermitidas === null || evaluacionesPermitidas === undefined) {
+    // Sin lista asignada: el alumno puede rendir todas las evaluaciones
+    delete alumno.evaluacionesPermitidas;
+  } else {
+    const ids = [...new Set(evaluacionesPermitidas.map(Number))];
+    const existentes = new Set(data.evaluaciones.map((e) => e.id));
+    if (ids.some((id) => !existentes.has(id))) {
+      return res.status(400).json({ error: 'La lista de evaluaciones asignadas es invalida.' });
+    }
+    alumno.evaluacionesPermitidas = ids;
+  }
+
+  registrarLog(data, 'asignar_evaluaciones', { alumnoId: alumno.id, cantidad: alumno.evaluacionesPermitidas ? alumno.evaluacionesPermitidas.length : -1 }, req.user);
+  await db.saveData();
+  res.json({ ok: true });
+}
+
 // ── CRUD de evaluaciones ────────────────────────────────────────────────────
 async function listarEvaluaciones(req, res) {
   const data = await db.loadData();
@@ -244,6 +268,7 @@ async function estadisticas(req, res) {
       id: a.id,
       nombre: a.nombre,
       nombre_completo: a.nombre_completo,
+      evaluacionesPermitidas: Array.isArray(a.evaluacionesPermitidas) ? a.evaluacionesPermitidas.slice() : null,
       evaluaciones: data.evaluaciones.map((ev) => {
         const intentos = intentosA.filter((i) => i.evaluacionId === ev.id);
         const mejor = intentos.length > 0 ? Math.max(...intentos.map((i) => i.puntaje)) : null;
@@ -372,6 +397,7 @@ module.exports = {
   eliminarAlumno,
   cambiarPassword,
   resetearIntentos,
+  asignarEvaluaciones,
   listarEvaluaciones,
   obtenerEvaluacion,
   crearEvaluacion,

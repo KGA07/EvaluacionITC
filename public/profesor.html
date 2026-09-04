@@ -255,6 +255,27 @@
     </div>
   </div>
 
+  <!-- Modal: asignar pruebas a un alumno -->
+  <div class="modal-overlay" id="pruebasModal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-title" id="pruebasTitle">Asignar pruebas</div>
+      <p class="modal-text" id="pruebasSubtitle"></p>
+      <div class="pruebas-actions">
+        <button type="button" class="btn-sm" id="btnPruebasTodas">Marcar todas</button>
+        <button type="button" class="btn-sm" id="btnPruebasNinguna">Desmarcar todas</button>
+      </div>
+      <div class="pruebas-list" id="pruebasList"></div>
+      <p class="q-editor-hint" style="margin-top:8px;">
+        Marca las pruebas que el alumno podra ver y rendir. Si no marcas ninguna, el alumno no tendra pruebas disponibles en su panel.
+      </p>
+      <div class="error-message" id="pruebasError"><span id="pruebasErrorText"></span></div>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button type="button" class="btn-modal-cancel" id="btnPruebasCancel">Cancelar</button>
+        <button type="button" class="btn-modal-confirm" id="btnPruebasGuardar">Guardar asignacion</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: detalle de intento -->
   <div class="modal-overlay" id="intentoModal">
     <div class="modal-card modal-card-lg">
