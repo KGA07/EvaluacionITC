@@ -61,7 +61,7 @@ npm run build    # genera public-dist/ con JS y CSS minificados
 La app usa `db.json` si no hay `DATABASE_URL`. Para usar una base de datos:
 
 1. En el panel de Vercel abre tu proyecto → **Storage** → **Create Database** → elige **Neon/Postgres** (plan gratuito).
-2. Copia la cadena de conexión. Vercel la suele inyectar como variable `POSTGRES_URL`/`DATABASE_URL`. Si tu proveedor entrega otra variable, crea una **Environment Variable** `DATABASE_URL` en tu proyecto (otra opción: usar `POSTGRES_URL`).
+2. Vercel integra la conexión automáticamente (variables `POSTGRES_URL`, `POSTGRES_USER`, etc.); la app las detecta. Si tu proveedor no las entrega, crea una **Environment Variable** `DATABASE_URL` o `POSTGRES_URL` con la cadena de conexión.
 3. Agrega también `JWT_SECRET`, `REFRESH_SECRET`, `ADMIN_PASSWORD` (y opcionalmente `SERVE_BUILT=1`) en **Project → Settings → Environment Variables**.
 4. Vuelve a desplegar (o haz un push a `main`). En el **primer arranque** se crea automáticamente la tabla `kv` y se carga el seed (evaluaciones, profesor y admin).
 5. Verifica en **Logs** que no haya errores de conexión. ¡Listo! Los datos persisten en Postgres.

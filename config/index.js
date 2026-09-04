@@ -28,9 +28,15 @@ const config = {
   loginMaxAttempts: int(process.env.LOGIN_MAX_ATTEMPTS, 5),
   loginWindowMs: int(process.env.LOGIN_WINDOW_MS, 15 * 60 * 1000),
 
-  // Persistencia: si DATABASE_URL está definida se usa Postgres (recomendado en Vercel).
-  // Si no, se usa el archivo local db.json (modo demo / desarrollo).
-  databaseUrl: process.env.DATABASE_URL || '',
+  // Persistencia: si existe una conexión a base de datos se usa Postgres
+  // (recomendado en Vercel). Acepta DATABASE_URL o las variables que entrega
+  // el template de Neon/Vercel (POSTGRES_URL). Si ninguna existe, se usa el
+  // archivo local db.json (modo demo / desarrollo).
+  databaseUrl:
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    '',
 
   // Parámetros por defecto de las evaluaciones (se pueden sobreescribir por evaluación)
   defaultIntentosMax: int(process.env.EVALUACION_DEFAULT_INTENTOS, 3),
