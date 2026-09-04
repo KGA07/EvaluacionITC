@@ -1,0 +1,6 @@
+.env*
+node_modules/
+public-dist/
+coverage/
+db.json
+*.log

@@ -1,5 +1,35 @@
 const API_BASE = '/api';
 
+// ── Tema claro/oscuro (4.4) y tamaño de letra (5.2) ─────────────────────────
+const Theme = {
+  get() {
+    return localStorage.getItem('theme') || 'light';
+  },
+  apply(t) {
+    document.documentElement.dataset.theme = t;
+    document.documentElement.style.colorScheme = t;
+    localStorage.setItem('theme', t);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = t === 'dark' ? 'Claro' : 'Oscuro';
+  },
+  toggle() {
+    this.apply(this.get() === 'dark' ? 'light' : 'dark');
+  },
+  init() {
+    this.apply(this.get());
+  }
+};
+
+const FontSize = {
+  get() {
+    return localStorage.getItem('fontSize') || '100';
+  },
+  apply(v) {
+    document.documentElement.dataset.fontSize = v;
+    localStorage.setItem('fontSize', v);
+  }
+};
+
 // ── Session helpers ─────────────────────────────────────────────────────────
 const Session = {
   set(access, refresh, tipo, nombre, nombreCompleto) {
@@ -9,10 +39,18 @@ const Session = {
     sessionStorage.setItem('nombre', nombre);
     sessionStorage.setItem('nombre_completo', nombreCompleto || nombre);
   },
-  getToken() { return sessionStorage.getItem('token'); },
-  getRefresh() { return sessionStorage.getItem('refreshToken'); },
-  getTipo() { return sessionStorage.getItem('tipo'); },
-  clear() { sessionStorage.clear(); }
+  getToken() {
+    return sessionStorage.getItem('token');
+  },
+  getRefresh() {
+    return sessionStorage.getItem('refreshToken');
+  },
+  getTipo() {
+    return sessionStorage.getItem('tipo');
+  },
+  clear() {
+    sessionStorage.clear();
+  }
 };
 
 // ── Toast notifications ─────────────────────────────────────────────────────
@@ -70,7 +108,13 @@ async function refreshAccess() {
       });
       if (res.ok) {
         const data = await res.json();
-        Session.set(data.token, data.refreshToken, Session.getTipo(), sessionStorage.getItem('nombre'), sessionStorage.getItem('nombre_completo'));
+        Session.set(
+          data.token,
+          data.refreshToken,
+          Session.getTipo(),
+          sessionStorage.getItem('nombre'),
+          sessionStorage.getItem('nombre_completo')
+        );
       } else {
         Session.clear();
         window.location.replace('/');
@@ -87,10 +131,6 @@ async function refreshAccess() {
   }
 }
 
-function parseError(data) {
-  return (data && data.error) || 'Error en la peticion.';
-}
-
 // ── Logout ──────────────────────────────────────────────────────────────────
 async function logout() {
   const refreshToken = Session.getRefresh();
@@ -101,7 +141,9 @@ async function logout() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken })
       });
-    } catch {}
+    } catch {
+      /* el logout falla silenciosamente */
+    }
   }
   Session.clear();
   window.location.replace('/');
@@ -112,3 +154,20 @@ function escapeHtml(str) {
   d.textContent = str == null ? '' : String(str);
   return d.innerHTML;
 }
+
+window.toast = toast;
+window.apiFetch = apiFetch;
+window.parseError = parseError;
+window.logout = logout;
+window.escapeHtml = escapeHtml;
+
+// ── PWA (8.4) ───────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  });
+}
+
+// Aplicar tema temprano (evita parpadeo)
+Theme.init();
+FontSize.apply(FontSize.get());

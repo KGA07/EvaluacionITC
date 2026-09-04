@@ -1,0 +1,393 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ITC Evaluaciones API",
+    "version": "2.1.0",
+    "description": "API del sistema de evaluaciones en linea del Instituto Tecnico de Capacitacion. Autenticacion por JWT (access + refresh)."
+  },
+  "servers": [{ "url": "/api" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["nombre", "password", "tipo"],
+        "properties": {
+          "nombre": { "type": "string" },
+          "password": { "type": "string" },
+          "tipo": { "type": "string", "enum": ["alumno", "profesor", "admin"] }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "tipo": { "type": "string" },
+          "nombre": { "type": "string" },
+          "nombre_completo": { "type": "string" }
+        }
+      },
+      "EvaluacionResumen": {
+        "type": "object",
+        "properties": {
+          "evaluacionId": { "type": "integer" },
+          "capacitacion": { "type": "string" },
+          "titulo": { "type": "string" },
+          "totalPreguntas": { "type": "integer" },
+          "intentosUsados": { "type": "integer" },
+          "intentosMax": { "type": "integer" },
+          "mejorPuntaje": { "type": ["integer", "null"] },
+          "aprobado": { "type": "boolean" },
+          "porcentaje": { "type": "integer" },
+          "duracionMinutos": { "type": "integer" },
+          "certificadoDisponible": { "type": "boolean" }
+        }
+      },
+      "EvaluacionToma": {
+        "type": "object",
+        "properties": {
+          "evaluacionId": { "type": "integer" },
+          "capacitacion": { "type": "string" },
+          "titulo": { "type": "string" },
+          "totalPreguntas": { "type": "integer" },
+          "intentoActual": { "type": "integer" },
+          "intentosMax": { "type": "integer" },
+          "duracionMinutos": { "type": "integer" },
+          "porcentaje": { "type": "integer" },
+          "preguntas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "integer" },
+                "pregunta": { "type": "string" },
+                "opciones": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "orden": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "integer" } }
+          }
+        }
+      },
+      "PreguntaCRUD": {
+        "type": "object",
+        "required": ["pregunta", "opciones", "correcta"],
+        "properties": {
+          "pregunta": { "type": "string" },
+          "opciones": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+          "correcta": { "type": "integer", "minimum": 0 },
+          "explicacion": { "type": "string" }
+        }
+      },
+      "EvaluacionCRUD": {
+        "type": "object",
+        "required": ["capacitacion", "preguntas"],
+        "properties": {
+          "capacitacion": { "type": "string" },
+          "titulo": { "type": "string" },
+          "intentosMax": { "type": "integer", "default": 3 },
+          "porcentaje": { "type": "integer", "default": 60 },
+          "duracionMinutos": { "type": "integer", "default": 15 },
+          "activa": { "type": "boolean", "default": true },
+          "preguntas": { "type": "array", "items": { "$ref": "#/components/schemas/PreguntaCRUD" } }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Iniciar sesion (alumno, profesor o admin)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } } },
+        "responses": {
+          "200": { "description": "Tokens y datos de sesion", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } } } },
+          "401": { "description": "Credenciales incorrectas" },
+          "429": { "description": "Demasiados intentos" }
+        }
+      }
+    },
+    "/refresh": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Rotar el token de acceso usando el refresh token",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["refreshToken"], "properties": { "refreshToken": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Nuevos tokens" }, "401": { "description": "Refresh token invalido" } }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Invalidar el refresh token",
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/recuperar/pregunta": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Paso 1: obtener la pregunta secreta de un usuario",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["nombre", "tipo"], "properties": { "nombre": { "type": "string" }, "tipo": { "type": "string", "enum": ["alumno", "profesor"] } } } } } },
+        "responses": { "200": { "description": "Pregunta secreta" }, "400": { "description": "No configuro pregunta secreta" }, "404": { "description": "Usuario no encontrado" } }
+      }
+    },
+    "/recuperar/verificar": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Paso 2: verificar la respuesta y obtener el reset token (15 min)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["nombre", "tipo", "respuesta"], "properties": { "nombre": { "type": "string" }, "tipo": { "type": "string" }, "respuesta": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "resetToken de un solo uso" }, "401": { "description": "Respuesta incorrecta" } }
+      }
+    },
+    "/recuperar/contrasena": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Paso 3: establecer la nueva contrasena",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["resetToken", "passwordNueva"], "properties": { "resetToken": { "type": "string" }, "passwordNueva": { "type": "string", "minLength": 4 } } } } } },
+        "responses": { "200": { "description": "Contrasena actualizada" }, "401": { "description": "Token invalido o vencido" } }
+      }
+    },
+    "/estado": {
+      "get": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Estado de las evaluaciones del alumno actual",
+        "responses": {
+          "200": { "description": "Lista de evaluaciones con intentos y aprobacion", "content": { "application/json": { "schema": { "type": "object", "properties": { "evaluaciones": { "type": "array", "items": { "$ref": "#/components/schemas/EvaluacionResumen" } } } } } } }
+        }
+      }
+    },
+    "/evaluacion/{id}": {
+      "get": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Iniciar (o retomar) una evaluacion con opciones mezcladas",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": { "description": "Evaluacion con preguntas y orden de mezcla", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EvaluacionToma" } } } },
+          "400": { "description": "Ya aprobada o intentos agotados" },
+          "404": { "description": "Evaluacion no encontrada" }
+        }
+      }
+    },
+    "/resultado": {
+      "post": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Enviar respuestas y obtener el resultado",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["evaluacionId", "respuestas"], "properties": { "evaluacionId": { "type": "integer" }, "respuestas": { "type": "array", "items": { "type": "integer", "nullable": true } }, "orden": { "type": "array", "items": { "type": "array", "items": { "type": "integer" } } } } } } } },
+        "responses": { "200": { "description": "Puntaje y desglose con explicaciones" }, "400": { "description": "Datos invalidos, intentos agotados o ya aprobada" } }
+      }
+    },
+    "/mis-datos/password": {
+      "put": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cambiar la propia contrasena",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["passwordActual", "passwordNueva"], "properties": { "passwordActual": { "type": "string" }, "passwordNueva": { "type": "string", "minLength": 4 } } } } } },
+        "responses": { "200": { "description": "OK" }, "401": { "description": "Contrasena actual incorrecta" } }
+      }
+    },
+    "/mis-datos/pregunta-secreta": {
+      "put": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Configurar la pregunta secreta para recuperar contrasena",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["pregunta", "respuesta", "passwordActual"], "properties": { "pregunta": { "type": "string" }, "respuesta": { "type": "string" }, "passwordActual": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/mis-intentos": {
+      "get": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Historial propio de intentos",
+        "responses": { "200": { "description": "Lista de intentos" } }
+      }
+    },
+    "/certificado/{id}": {
+      "get": {
+        "tags": ["alumno"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Datos del certificado de aprobacion",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Certificado" }, "400": { "description": "Aun no aprobo" } }
+      }
+    },
+    "/profesor/evaluaciones": {
+      "get": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Listar evaluaciones con estadisticas",
+        "responses": { "200": { "description": "Lista de evaluaciones" } }
+      },
+      "post": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Crear evaluacion",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EvaluacionCRUD" } } } },
+        "responses": { "200": { "description": "Evaluacion creada" }, "400": { "description": "Validacion fallida" } }
+      }
+    },
+    "/profesor/evaluaciones/{id}": {
+      "get": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Obtener evaluacion (con respuestas y explicaciones)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Evaluacion completa" } }
+      },
+      "put": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Editar evaluacion",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EvaluacionCRUD" } } } },
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Eliminar evaluacion y sus intentos",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/profesor/alumnos": {
+      "get": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Listar alumnos",
+        "responses": { "200": { "description": "Lista de alumnos" } }
+      },
+      "post": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Crear alumno",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["nombre", "password", "nombre_completo"], "properties": { "nombre": { "type": "string" }, "password": { "type": "string" }, "nombre_completo": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Alumno creado" } }
+      }
+    },
+    "/profesor/alumnos/{id}": {
+      "delete": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Eliminar alumno y sus resultados",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/profesor/alumnos/{id}/password": {
+      "put": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cambiar contrasena de un alumno",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["password"], "properties": { "password": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/profesor/alumnos/{alumnoId}/evaluaciones/{evaluacionId}/reset": {
+      "post": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Resetear intentos de un alumno en una evaluacion",
+        "parameters": [
+          { "name": "alumnoId", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "evaluacionId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Intentos reiniciados" } }
+      }
+    },
+    "/profesor/estadisticas": {
+      "get": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Estadisticas por evaluacion y detalle por alumno",
+        "responses": { "200": { "description": "stats y alumnosDetalle" } }
+      }
+    },
+    "/profesor/intentos/{id}": {
+      "get": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Detalle completo de un intento (con explicaciones)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Intento con desglose" } }
+      }
+    },
+    "/profesor/exportar/{id}": {
+      "get": {
+        "tags": ["profesor"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Exportar resultados de una evaluacion en CSV",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Archivo CSV (BOM UTF-8)" } }
+      }
+    },
+    "/admin/profesores": {
+      "get": {
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Listar profesores",
+        "responses": { "200": { "description": "Lista de profesores" } }
+      },
+      "post": {
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Crear profesor",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["nombre", "password", "nombre_completo"], "properties": { "nombre": { "type": "string" }, "password": { "type": "string" }, "nombre_completo": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Profesor creado" } }
+      }
+    },
+    "/admin/profesores/{id}": {
+      "delete": {
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Eliminar profesor",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/admin/profesores/{id}/password": {
+      "put": {
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Cambiar contrasena de un profesor",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["password"], "properties": { "password": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/admin/logs": {
+      "get": {
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Registro de auditoria (filtro por ?accion= y ?limite=)",
+        "parameters": [
+          { "name": "accion", "in": "query", "schema": { "type": "string" } },
+          { "name": "limite", "in": "query", "schema": { "type": "integer", "maximum": 500 } }
+        ],
+        "responses": { "200": { "description": "Lista de logs" } }
+      }
+    },
+    "/admin/estadisticas": {
+      "get": {
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Estadisticas globales del sistema",
+        "responses": { "200": { "description": "Totales" } }
+      }
+    }
+  }
+}

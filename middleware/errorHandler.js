@@ -8,7 +8,7 @@ function notFound(req, res) {
   res.status(404).sendFile(require('path').join(__dirname, '..', 'public', 'index.html'));
 }
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   // Los errores de body-parser con JSON malformado
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'JSON invalido en la peticion.' });
@@ -23,7 +23,6 @@ function errorHandler(err, req, res, next) {
     return res.status(err.status).json({ error: err.message || 'Error en la peticion.' });
   }
 
-  // eslint-disable-next-line no-console
   console.error('Error no controlado:', err);
   res.status(500).json({ error: 'Error interno del servidor.' });
 }

@@ -4,11 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ITC Evaluaciones - Iniciar Sesion</title>
+  <meta name="description" content="Sistema de evaluaciones en linea del Instituto Tecnico de Capacitacion">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0058FF">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.dataset.fontSize = localStorage.getItem('fontSize') || '100';
+  </script>
 </head>
 <body class="login-body">
+
+  <a href="#loginForm" class="skip-link">Saltar al contenido</a>
 
   <div class="bg-shapes" aria-hidden="true">
     <div class="shape shape-1"></div>
@@ -16,18 +26,19 @@
     <div class="shape shape-3"></div>
   </div>
 
-  <main class="login-container">
+  <main class="login-container" id="main">
     <div class="brand-area">
       <img src="/img/logo-itc.svg" alt="Instituto Tecnico de Capacitacion" class="brand-logo">
       <p class="brand-subtitle">Sistema de Evaluaciones en Linea</p>
     </div>
 
     <div class="login-card">
-      <h2 class="card-title">Iniciar Sesion</h2>
+      <h2 class="card-title" id="cardTitle">Iniciar Sesion</h2>
 
-      <div class="type-toggle" role="group">
-        <button class="toggle-btn active" data-type="alumno" type="button">Alumno</button>
-        <button class="toggle-btn" data-type="profesor" type="button">Profesor</button>
+      <div class="type-toggle" role="group" aria-label="Tipo de usuario">
+        <button class="toggle-btn active" data-type="alumno" type="button" aria-pressed="true">Alumno</button>
+        <button class="toggle-btn" data-type="profesor" type="button" aria-pressed="false">Profesor</button>
+        <button class="toggle-btn" data-type="admin" type="button" aria-pressed="false">Admin</button>
       </div>
 
       <form id="loginForm" class="login-form" novalidate>
@@ -56,13 +67,62 @@
           </span>
         </button>
       </form>
+
+      <p class="recover-link"><button type="button" id="btnRecover" class="link-btn">¿Olvidaste tu contrasena?</button></p>
     </div>
 
     <footer class="login-footer">
-      <p>&copy; 2026 ITC - Sistema de Evaluaciones v1.0</p>
+      <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false" aria-label="Cambiar tema oscuro/claro">Oscuro</button>
+      <p>&copy; 2026 ITC - Sistema de Evaluaciones v2.1</p>
     </footer>
   </main>
 
+  <div class="modal-overlay" id="recoverModal" role="dialog" aria-modal="true" aria-labelledby="recoverTitle">
+    <div class="modal-card">
+      <div class="modal-title" id="recoverTitle">Recuperar contrasena</div>
+      <div class="modal-text">Respondiste una pregunta secreta cuando creaste tu cuenta. Si no la configuraste, contacta a tu instructor.</div>
+      <form id="recoverForm" class="login-form" novalidate>
+        <div class="type-toggle" role="group" aria-label="Tipo de usuario">
+          <button class="toggle-btn active" data-type="alumno" type="button">Alumno</button>
+          <button class="toggle-btn" data-type="profesor" type="button">Profesor</button>
+        </div>
+        <div class="form-group">
+          <label for="recoverNombre">Usuario</label>
+          <div class="input-wrapper"><input type="text" id="recoverNombre" placeholder="Tu usuario de ingreso" required></div>
+        </div>
+
+        <div id="recoverQuestionWrap" class="hidden">
+          <div class="form-group">
+            <label for="recoverRespuesta" id="recoverQuestionLabel">Pregunta secreta</label>
+            <div class="input-wrapper"><input type="text" id="recoverRespuesta" placeholder="Tu respuesta" required></div>
+          </div>
+          <div class="form-group">
+            <label for="recoverNueva">Nueva contrasena</label>
+            <div class="input-wrapper"><input type="password" id="recoverNueva" placeholder="Nueva contrasena" minlength="4" required></div>
+          </div>
+        </div>
+
+        <div class="error-message" id="recoverError"><span id="recoverErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnRecoverCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnRecoverNext">Continuar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('load', function () {
+      var btn = document.getElementById('themeToggle');
+      btn.textContent = (localStorage.getItem('theme') || 'light') === 'dark' ? 'Claro' : 'Oscuro';
+      btn.addEventListener('click', function () {
+        var t = (localStorage.getItem('theme') || 'light') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('theme', t);
+        document.documentElement.dataset.theme = t;
+        btn.textContent = t === 'dark' ? 'Claro' : 'Oscuro';
+      });
+    });
+  </script>
   <script src="/js/common.js"></script>
   <script src="/js/login.js"></script>
 </body>

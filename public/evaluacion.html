@@ -4,11 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ITC Evaluaciones - Examen</title>
+  <meta name="description" content="Evaluacion en linea del Instituto Tecnico de Capacitacion">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0058FF">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.dataset.fontSize = localStorage.getItem('fontSize') || '100';
+  </script>
 </head>
 <body class="exam-body">
+
+  <a href="#examContent" class="skip-link">Saltar a la pregunta</a>
 
   <header class="exam-header">
     <div class="exam-header-top">
@@ -43,6 +53,10 @@
       <span id="btnNextLabel">Siguiente</span> &rarr;
     </button>
   </footer>
+
+  <button class="mini-map-toggle" id="btnPrimeraSinResponder" type="button" title="Ir a la primera pregunta sin responder">
+    <span class="mini-map-icon">&#9636;</span> Primera sin responder
+  </button>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">

@@ -4,32 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ITC Evaluaciones - Panel Profesor</title>
+  <meta name="description" content="Panel de instructor y administracion">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0058FF">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.dataset.fontSize = localStorage.getItem('fontSize') || '100';
+  </script>
 </head>
 <body class="dashboard-body">
 
-  <nav class="navbar">
+  <a href="#main" class="skip-link">Saltar al contenido</a>
+
+  <nav class="navbar" aria-label="Navegacion principal">
     <div class="nav-brand">
-      <img src="/img/logo-itc.svg" alt="ITS" class="nav-logo">
+      <img src="/img/logo-itc.svg" alt="Instituto Tecnico de Capacitacion" class="nav-logo">
     </div>
     <div class="nav-right">
-      <div class="user-badge">
-        <div class="user-avatar" id="userInitial">P</div>
-        <div class="user-info">
-          <span class="user-name" id="userName">Profesor</span>
-          <span class="user-role">Instructor</span>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar tema oscuro/claro">Oscuro</button>
+      <div class="account-menu">
+        <div class="user-badge" id="userMenuBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <div class="user-avatar" id="userInitial">P</div>
+          <div class="user-info">
+            <span class="user-name" id="userName">Profesor</span>
+            <span class="user-role" id="userRole">Instructor</span>
+          </div>
+        </div>
+        <div class="account-dropdown" id="accountDropdown">
+          <button class="account-dropdown-item" id="btnLogout">Cerrar sesion</button>
         </div>
       </div>
-      <button class="btn-logout" id="logoutBtn">Salir</button>
     </div>
   </nav>
 
-  <main class="dashboard-main">
+  <main class="dashboard-main" id="main">
     <div class="welcome-section">
-      <h1 class="welcome-title">Panel de Instructor</h1>
-      <p class="welcome-subtitle">Gestiona alumnos y revisa resultados de evaluaciones.</p>
+      <h1 class="welcome-title" id="welcomeTitle">Panel de Instructor</h1>
+      <p class="welcome-subtitle">Gestiona alumnos, evaluaciones y revisa resultados.</p>
     </div>
 
     <div id="loadingState" class="loading-container">
@@ -45,7 +60,9 @@
           <div class="sidebar-title">Acciones</div>
           <ul class="cap-list">
             <li class="cap-item active" data-view="alumnos">Gestionar Alumnos</li>
+            <li class="cap-item" data-view="evaluaciones">Gestionar Evaluaciones</li>
             <li class="cap-item" data-view="estadisticas">Estadisticas por Evaluacion</li>
+            <li class="cap-item admin-only hidden" data-view="admin">Administracion</li>
           </ul>
         </aside>
 
@@ -54,7 +71,7 @@
             <div class="section-header">
               <h2 class="section-title">Alumnos Registrados</h2>
               <div class="section-actions">
-                <input type="search" id="searchAlumno" class="search-input" placeholder="Buscar alumno...">
+                <input type="search" id="searchAlumno" class="search-input" placeholder="Buscar alumno..." aria-label="Buscar alumno">
                 <button class="btn-primary" id="btnNewStudent" style="width:auto;padding:0 20px;height:44px;">+ Nuevo Alumno</button>
               </div>
             </div>
@@ -71,7 +88,18 @@
                   <tbody id="alumnosBody"></tbody>
                 </table>
               </div>
+              <div class="pagination" id="alumnosPagination"></div>
             </div>
+          </div>
+
+          <div id="viewEvaluaciones" class="hidden">
+            <div class="section-header">
+              <h2 class="section-title">Evaluaciones</h2>
+              <div class="section-actions">
+                <button class="btn-primary" id="btnNewEval" style="width:auto;padding:0 20px;height:44px;">+ Nueva Evaluacion</button>
+              </div>
+            </div>
+            <div id="evalList" class="eval-stats-grid"></div>
           </div>
 
           <div id="viewEstadisticas" class="hidden"></div>
@@ -83,11 +111,43 @@
             </div>
             <div id="detalleContainer" class="table-card" style="padding:16px;"></div>
           </div>
+
+          <div id="viewAdmin" class="hidden">
+            <div class="section-header">
+              <h2 class="section-title">Administracion</h2>
+              <div class="section-actions">
+                <button class="btn-primary" id="btnNewProfesor" style="width:auto;padding:0 20px;height:44px;">+ Nuevo Profesor</button>
+              </div>
+            </div>
+
+            <div class="section-header" style="margin-top:10px;">
+              <h2 class="section-title" style="font-size:.95rem;">Estadisticas globales</h2>
+            </div>
+            <div class="admin-grid" id="adminStats"></div>
+
+            <div class="section-header" style="margin-top:10px;">
+              <h2 class="section-title" style="font-size:.95rem;">Profesores</h2>
+            </div>
+            <div class="table-card">
+              <div class="table-wrapper">
+                <table id="profesoresTable">
+                  <thead><tr><th>Nombre</th><th>Usuario</th><th>Acciones</th></tr></thead>
+                  <tbody id="profesoresBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="section-header" style="margin-top:10px;">
+              <h2 class="section-title" style="font-size:.95rem;">Registro de actividad (ultimas acciones)</h2>
+            </div>
+            <div class="table-card" id="logsContainer"></div>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
+  <!-- Modal: crear alumno -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-card">
       <div class="modal-title" id="modalTitle">Nuevo Alumno</div>
@@ -119,6 +179,7 @@
     </div>
   </div>
 
+  <!-- Modal: cambiar contrasena alumno -->
   <div class="modal-overlay" id="passwordModal">
     <div class="modal-card">
       <div class="modal-title">Cambiar Contrasena</div>
@@ -134,6 +195,116 @@
         <div class="modal-actions">
           <button type="button" class="btn-modal-cancel" id="btnPwCancel">Cancelar</button>
           <button type="submit" class="btn-modal-confirm" id="btnPwSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: crear/editar evaluacion -->
+  <div class="modal-overlay" id="evalModal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-title" id="evalModalTitle">Nueva Evaluacion</div>
+      <form id="evalForm" class="login-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="evalCapacitacion">Capacitacion</label>
+            <div class="input-wrapper"><input type="text" id="evalCapacitacion" placeholder="Ej: Ingles Tecnico" required></div>
+          </div>
+          <div class="form-group">
+            <label for="evalTitulo">Titulo</label>
+            <div class="input-wrapper"><input type="text" id="evalTitulo" placeholder="Opcional"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="evalIntentos">Intentos maximos</label>
+            <div class="input-wrapper"><input type="number" id="evalIntentos" min="1" max="99" value="3" required></div>
+          </div>
+          <div class="form-group">
+            <label for="evalPorcentaje">% para aprobar</label>
+            <div class="input-wrapper"><input type="number" id="evalPorcentaje" min="1" max="100" value="60" required></div>
+          </div>
+          <div class="form-group">
+            <label for="evalDuracion">Duracion (minutos)</label>
+            <div class="input-wrapper"><input type="number" id="evalDuracion" min="1" max="240" value="15" required></div>
+          </div>
+        </div>
+        <div class="form-group check-group">
+          <label class="check-label">
+            <input type="checkbox" id="evalActiva" checked> Evaluacion activa (visible para alumnos)
+          </label>
+        </div>
+        <div class="form-group">
+          <label for="evalPreguntas">Preguntas (formato JSON)</label>
+          <div class="input-wrapper">
+            <textarea id="evalPreguntas" rows="12" spellcheck="false" required placeholder='[{"pregunta":"...","opciones":["A","B","C","D"],"correcta":0,"explicacion":"..."}]'></textarea>
+          </div>
+          <p style="font-size:.75rem;color:var(--text-muted);margin-top:6px;">
+            Array de preguntas. <code>correcta</code> es el indice (empezando en 0) de la opcion correcta.
+          </p>
+        </div>
+        <input type="hidden" id="evalIdHidden">
+        <div class="error-message" id="evalError"><span id="evalErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnEvalCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnEvalSave">Crear Evaluacion</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: detalle de intento -->
+  <div class="modal-overlay" id="intentoModal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-title" id="intentoTitle">Detalle del intento</div>
+      <div class="modal-text" id="intentoMeta"></div>
+      <div id="intentoDetalle" class="detalle-wrap"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-confirm" id="btnIntentoClose">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: crear profesor -->
+  <div class="modal-overlay" id="profesorModal">
+    <div class="modal-card">
+      <div class="modal-title">Nuevo Profesor</div>
+      <form id="profesorForm" class="login-form">
+        <div class="form-group">
+          <label for="profNombre">Nombre completo</label>
+          <div class="input-wrapper"><input type="text" id="profNombre" required></div>
+        </div>
+        <div class="form-group">
+          <label for="profUsuario">Usuario (login)</label>
+          <div class="input-wrapper"><input type="text" id="profUsuario" required></div>
+        </div>
+        <div class="form-group">
+          <label for="profPassword">Contrasena</label>
+          <div class="input-wrapper"><input type="text" id="profPassword" required></div>
+        </div>
+        <div class="error-message" id="profError"><span id="profErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnProfCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnProfSave">Crear Profesor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: cambiar contrasena profesor -->
+  <div class="modal-overlay" id="profPasswordModal">
+    <div class="modal-card">
+      <div class="modal-title">Cambiar Contrasena del Profesor</div>
+      <form id="profPasswordForm" class="login-form">
+        <div class="form-group">
+          <label for="profNewPassword">Nueva contrasena</label>
+          <div class="input-wrapper"><input type="text" id="profNewPassword" placeholder="Nueva contrasena" required></div>
+        </div>
+        <input type="hidden" id="profPasswordId">
+        <div class="error-message" id="profPwError"><span id="profPwErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnProfPwCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnProfPwSave">Guardar</button>
         </div>
       </form>
     </div>

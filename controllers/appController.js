@@ -4,16 +4,17 @@ const bcrypt = require('bcryptjs');
 const db = require('../data/db');
 const config = require('../config');
 const jwt = require('jsonwebtoken');
-const { auth: authMw, signAccess, signRefresh, verifyRefresh } = require('../middleware/auth');
-const { aprobacionMinima, esAprobado } = require('../utils/helpers');
+const { signAccess, signRefresh, verifyRefresh } = require('../middleware/auth');
+const { esAprobado, shuffle, esPermutacionValida } = require('../utils/helpers');
+const { registrarLog } = require('../utils/audit');
 
 const REFRESH_TOKEN_KEY = 'refreshTokens';
 const uuidv4 = crypto.randomUUID;
 
 // ── Login ──────────────────────────────────────────────────────────────────
-function login(req, res) {
+async function login(req, res) {
   const { nombre, password, tipo } = req.body;
-  const data = db.readDB();
+  const data = await db.loadData();
   const user = data.users.find((u) => u.nombre === nombre && u.tipo === tipo);
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return res.status(401).json({ error: 'Credenciales incorrectas.' });
@@ -24,11 +25,11 @@ function login(req, res) {
   const refreshToken = signRefresh(user, tokenId);
 
   data[REFRESH_TOKEN_KEY] = data[REFRESH_TOKEN_KEY] || [];
-  // Limitar cantidad de refresh activos por usuario (rotación básica)
   data[REFRESH_TOKEN_KEY] = data[REFRESH_TOKEN_KEY].filter((t) => t.userId !== user.id).slice(-4);
   data[REFRESH_TOKEN_KEY].push({ userId: user.id, tokenId });
 
-  db.writeDB();
+  registrarLog(data, 'login', {}, user);
+  await db.saveData();
 
   res.json({
     token: accessToken,
@@ -40,14 +41,14 @@ function login(req, res) {
 }
 
 // ── Refresh token ──────────────────────────────────────────────────────────
-function refresh(req, res) {
+async function refresh(req, res) {
   const { refreshToken } = req.body;
   if (!refreshToken) return res.status(400).json({ error: 'Refresh token requerido.' });
 
   const payload = verifyRefresh(refreshToken);
   if (!payload) return res.status(401).json({ error: 'Refresh token invalido.' });
 
-  const data = db.readDB();
+  const data = await db.loadData();
   const rts = data[REFRESH_TOKEN_KEY] || [];
   const stored = rts.find((t) => t.tokenId === payload.tokenId);
   if (!stored || stored.userId !== payload.id) {
@@ -61,7 +62,7 @@ function refresh(req, res) {
   data[REFRESH_TOKEN_KEY] = rts.filter((t) => t.tokenId !== payload.tokenId);
   const newTokenId = uuidv4();
   data[REFRESH_TOKEN_KEY].push({ userId: user.id, tokenId: newTokenId });
-  db.writeDB();
+  await db.saveData();
 
   res.json({
     token: signAccess(user),
@@ -70,54 +71,79 @@ function refresh(req, res) {
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────
-function logout(req, res) {
+async function logout(req, res) {
   const { refreshToken } = req.body;
   if (refreshToken) {
     const payload = verifyRefresh(refreshToken);
     if (payload) {
-      const data = db.readDB();
+      const data = await db.loadData();
       data[REFRESH_TOKEN_KEY] = (data[REFRESH_TOKEN_KEY] || []).filter((t) => t.tokenId !== payload.tokenId);
-      db.writeDB();
+      await db.saveData();
     }
   }
   res.json({ ok: true });
 }
 
 // ── Alumno: estado ─────────────────────────────────────────────────────────
-function estado(req, res) {
-  const data = db.readDB();
+async function estado(req, res) {
+  const data = await db.loadData();
   const intentos = data.intentos.filter((i) => i.userId === req.user.id);
 
-  const evaluaciones = data.evaluaciones.map((ev) => {
-    const intentosEv = intentos.filter((i) => i.evaluacionId === ev.id);
-    const mejorPuntaje = intentosEv.length > 0 ? Math.max(...intentosEv.map((i) => i.puntaje)) : null;
-    const aprobado = esAprobado(mejorPuntaje, ev.preguntas.length);
-    return {
-      evaluacionId: ev.id,
-      capacitacion: ev.capacitacion,
-      titulo: ev.titulo,
-      totalPreguntas: ev.preguntas.length,
-      intentosUsados: intentosEv.length,
-      mejorPuntaje,
-      aprobado
-    };
-  });
+  const evaluaciones = data.evaluaciones
+    .filter((ev) => ev.activa !== false)
+    .map((ev) => {
+      const intentosEv = intentos.filter((i) => i.evaluacionId === ev.id);
+      const mejorPuntaje = intentosEv.length > 0 ? Math.max(...intentosEv.map((i) => i.puntaje)) : null;
+      const aprobado = esAprobado(mejorPuntaje, ev.preguntas.length, ev.porcentaje);
+      const intentosMax = ev.intentosMax || config.defaultIntentosMax;
+      return {
+        evaluacionId: ev.id,
+        capacitacion: ev.capacitacion,
+        titulo: ev.titulo,
+        totalPreguntas: ev.preguntas.length,
+        intentosUsados: intentosEv.length,
+        intentosMax,
+        mejorPuntaje,
+        aprobado,
+        porcentaje: ev.porcentaje || config.defaultPorcentajeAprobacion,
+        duracionMinutos: ev.duracionMinutos || config.defaultDuracionMinutos,
+        certificadoDisponible: aprobado
+      };
+    });
 
   res.json({ evaluaciones });
 }
 
 // ── Alumno: tomar evaluacion ───────────────────────────────────────────────
-function tomarEvaluacion(req, res) {
-  const data = db.readDB();
+async function tomarEvaluacion(req, res) {
+  const data = await db.loadData();
   const ev = data.evaluaciones.find((e) => e.id === parseInt(req.params.id, 10));
   if (!ev) return res.status(404).json({ error: 'Evaluacion no encontrada' });
+  if (ev.activa === false) return res.status(400).json({ error: 'Evaluacion no disponible.' });
 
   const intentosEv = data.intentos.filter((i) => i.userId === req.user.id && i.evaluacionId === ev.id);
-  const yaAprobada = intentosEv.some((i) => esAprobado(i.puntaje, ev.preguntas.length));
+  const intentosMax = ev.intentosMax || config.defaultIntentosMax;
+  const yaAprobada = intentosEv.some((i) => esAprobado(i.puntaje, ev.preguntas.length, ev.porcentaje));
   if (yaAprobada) return res.status(400).json({ error: 'Ya aprobaste esta evaluacion.' });
-  if (intentosEv.length >= 3) return res.status(400).json({ error: 'Agotaste los 3 intentos disponibles.' });
+  if (intentosEv.length >= intentosMax) {
+    return res.status(400).json({ error: `Agotaste los ${intentosMax} intentos disponibles.` });
+  }
 
-  const preguntas = ev.preguntas.map((p) => ({ id: p.id, pregunta: p.pregunta, opciones: p.opciones }));
+  // Mezcla las opciones de forma determinística por intento (mejora 8.7)
+  const seed = Math.floor(Math.random() * 2147483647);
+  const preguntas = ev.preguntas.map((p) => {
+    const orden = p.opciones.map((_, i) => i);
+    const mezclado = shuffle(orden, seed + p.id);
+    return {
+      id: p.id,
+      pregunta: p.pregunta,
+      opciones: mezclado.map((i) => p.opciones[i])
+    };
+  });
+  const orden = ev.preguntas.map((p) => {
+    const indices = p.opciones.map((_, i) => i);
+    return shuffle(indices, seed + p.id);
+  });
 
   res.json({
     evaluacionId: ev.id,
@@ -125,77 +151,172 @@ function tomarEvaluacion(req, res) {
     titulo: ev.titulo,
     totalPreguntas: preguntas.length,
     intentoActual: intentosEv.length + 1,
-    preguntas
+    intentosMax,
+    duracionMinutos: ev.duracionMinutos || config.defaultDuracionMinutos,
+    porcentaje: ev.porcentaje || config.defaultPorcentajeAprobacion,
+    preguntas,
+    orden
   });
 }
 
 // ── Alumno: enviar respuestas (resultado) ──────────────────────────────────
-function resultado(req, res) {
-  const { evaluacionId, respuestas } = req.body;
-  const data = db.readDB();
+async function resultado(req, res) {
+  const { evaluacionId, respuestas, orden } = req.body;
+  const data = await db.loadData();
   const ev = data.evaluaciones.find((e) => e.id === evaluacionId);
   if (!ev) return res.status(404).json({ error: 'Evaluacion no encontrada' });
 
   const intentosEv = data.intentos.filter((i) => i.userId === req.user.id && i.evaluacionId === evaluacionId);
-  if (intentosEv.length >= 3) return res.status(400).json({ error: 'Agotaste los 3 intentos.' });
-  if (intentosEv.some((i) => esAprobado(i.puntaje, ev.preguntas.length))) {
+  const intentosMax = ev.intentosMax || config.defaultIntentosMax;
+  if (intentosEv.length >= intentosMax) return res.status(400).json({ error: `Agotaste los ${intentosMax} intentos.` });
+  if (intentosEv.some((i) => esAprobado(i.puntaje, ev.preguntas.length, ev.porcentaje))) {
     return res.status(400).json({ error: 'Ya aprobaste esta evaluacion.' });
   }
+  if (!Array.isArray(respuestas) || respuestas.length !== ev.preguntas.length) {
+    return res.status(400).json({ error: 'Cantidad de respuestas invalida.' });
+  }
 
+  // Gradúa mapeando el índice mostrado al índice original usando el `orden`
   let correctas = 0;
-  const detalle = ev.preguntas.map((p) => {
-    const userResp = respuestas[p.id - 1];
-    const esCorrecta = userResp === p.correcta;
-    if (esCorrecta) correctas++;
+  const detalle = ev.preguntas.map((p, qIdx) => {
+    const userDisp = respuestas[qIdx];
+    const ordenQ = Array.isArray(orden) && Array.isArray(orden[qIdx]) ? orden[qIdx] : p.opciones.map((_, i) => i);
+    const userOrig = esPermutacionValida(ordenQ, p.opciones.length) ? ordenQ[userDisp] : userDisp;
+    const esCorrecta = userOrig === p.correcta;
+    if (esCorrecta && userDisp != null) correctas++;
     return {
       preguntaId: p.id,
       pregunta: p.pregunta,
       opciones: p.opciones,
-      respondida: userResp,
+      respondida: userOrig,
       correcta: p.correcta,
-      esCorrecta
+      esCorrecta,
+      explicacion: p.explicacion || ''
     };
   });
 
   const puntaje = correctas;
-  data.intentos.push({
+  const intento = {
     id: db.getNextId(data.intentos),
     userId: req.user.id,
     evaluacionId,
     puntaje,
-    respuestas,
+    respuestas: detalle.map((d) => d.respondida),
+    orden,
     fecha: new Date().toISOString()
-  });
-  db.writeDB();
+  };
+  data.intentos.push(intento);
+
+  registrarLog(
+    data,
+    'envio_evaluacion',
+    {
+      evaluacionId,
+      capacitacion: ev.capacitacion,
+      puntaje,
+      total: ev.preguntas.length,
+      aprobado: esAprobado(puntaje, ev.preguntas.length, ev.porcentaje)
+    },
+    req.user
+  );
+  await db.saveData();
 
   res.json({
+    evaluacionId,
     puntaje,
     totalPreguntas: ev.preguntas.length,
-    aprobado: esAprobado(puntaje, ev.preguntas.length),
+    aprobado: esAprobado(puntaje, ev.preguntas.length, ev.porcentaje),
+    porcentajeAprobacion: ev.porcentaje || config.defaultPorcentajeAprobacion,
     intentoActual: intentosEv.length + 1,
-    detalle
+    intentosMax,
+    detalle,
+    certificadoDisponible: esAprobado(puntaje, ev.preguntas.length, ev.porcentaje)
   });
 }
 
 // ── Alumno: cambiar propia contrasena ──────────────────────────────────────
-function cambiarPasswordPropia(req, res) {
+async function cambiarPasswordPropia(req, res) {
   const { passwordActual, passwordNueva } = req.body;
-  const data = db.readDB();
+  const data = await db.loadData();
   const user = data.users.find((u) => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'Usuario inexistente.' });
   if (!bcrypt.compareSync(passwordActual, user.password)) {
     return res.status(401).json({ error: 'La contrasena actual es incorrecta.' });
   }
   user.password = bcrypt.hashSync(passwordNueva, 10);
-  // Invalidar refresh tokens del usuario al cambiar contrasena
   data[REFRESH_TOKEN_KEY] = (data[REFRESH_TOKEN_KEY] || []).filter((t) => t.userId !== user.id);
-  db.writeDB();
+  registrarLog(data, 'cambio_password', {}, req.user);
+  await db.saveData();
+  res.json({ ok: true });
+}
+
+// ── Alumno: configurar pregunta secreta ────────────────────────────────────
+async function configurarPreguntaSecreta(req, res) {
+  const { pregunta, respuesta, passwordActual } = req.body;
+  const data = await db.loadData();
+  const user = data.users.find((u) => u.id === req.user.id);
+  if (!user) return res.status(404).json({ error: 'Usuario inexistente.' });
+  if (!bcrypt.compareSync(passwordActual, user.password)) {
+    return res.status(401).json({ error: 'La contrasena actual es incorrecta.' });
+  }
+  user.preguntaSecreta = pregunta;
+  user.respuestaSecreta = bcrypt.hashSync(respuesta, 10);
+  registrarLog(data, 'configurar_pregunta_secreta', {}, req.user);
+  await db.saveData();
+  res.json({ ok: true });
+}
+
+// ── Recuperar contrasena (pregunta secreta) ────────────────────────────────
+async function recuperarPregunta(req, res) {
+  const { nombre, tipo } = req.body;
+  const data = await db.loadData();
+  const user = data.users.find((u) => u.nombre === nombre && u.tipo === tipo);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+  if (!user.preguntaSecreta) {
+    return res.status(400).json({ error: 'Este usuario no configuro una pregunta secreta. Contacta a tu instructor.' });
+  }
+  res.json({ pregunta: user.preguntaSecreta });
+}
+
+async function recuperarVerificar(req, res) {
+  const { nombre, tipo, respuesta } = req.body;
+  const data = await db.loadData();
+  const user = data.users.find((u) => u.nombre === nombre && u.tipo === tipo);
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+  if (!user.respuestaSecreta || !bcrypt.compareSync(String(respuesta), user.respuestaSecreta)) {
+    return res.status(401).json({ error: 'La respuesta es incorrecta.' });
+  }
+  const resetToken = jwt.sign({ id: user.id, tipo: user.tipo, proposito: 'reset' }, config.jwtSecret, {
+    expiresIn: '15m'
+  });
+  registrarLog(data, 'recuperar_contrasena', { nombre: user.nombre }, user);
+  await db.saveData();
+  res.json({ resetToken });
+}
+
+async function recuperarContrasena(req, res) {
+  const { resetToken, passwordNueva } = req.body;
+  let payload;
+  try {
+    payload = jwt.verify(resetToken, config.jwtSecret);
+  } catch {
+    return res.status(401).json({ error: 'El enlace de recuperacion vencio o es invalido.' });
+  }
+  if (payload.proposito !== 'reset') return res.status(401).json({ error: 'Token invalido.' });
+
+  const data = await db.loadData();
+  const user = data.users.find((u) => u.id === payload.id);
+  if (!user) return res.status(404).json({ error: 'Usuario inexistente.' });
+  user.password = bcrypt.hashSync(passwordNueva, 10);
+  data[REFRESH_TOKEN_KEY] = (data[REFRESH_TOKEN_KEY] || []).filter((t) => t.userId !== user.id);
+  registrarLog(data, 'recuperar_contrasena_ok', { nombre: user.nombre }, user);
+  await db.saveData();
   res.json({ ok: true });
 }
 
 // ── Alumno: historial propio ───────────────────────────────────────────────
-function miHistorial(req, res) {
-  const data = db.readDB();
+async function miHistorial(req, res) {
+  const data = await db.loadData();
   const intentos = data.intentos
     .filter((i) => i.userId === req.user.id)
     .map((i) => {
@@ -206,7 +327,7 @@ function miHistorial(req, res) {
         capacitacion: ev ? ev.capacitacion : 'Desconocida',
         puntaje: i.puntaje,
         totalPreguntas: ev ? ev.preguntas.length : 0,
-        aprobado: ev ? esAprobado(i.puntaje, ev.preguntas.length) : false,
+        aprobado: ev ? esAprobado(i.puntaje, ev.preguntas.length, ev.porcentaje) : false,
         fecha: i.fecha
       };
     })
@@ -215,4 +336,48 @@ function miHistorial(req, res) {
   res.json({ intentos });
 }
 
-module.exports = { login, refresh, logout, estado, tomarEvaluacion, resultado, cambiarPasswordPropia, miHistorial };
+// ── Certificado de aprobacion (constancia) ─────────────────────────────────
+async function certificado(req, res) {
+  const data = await db.loadData();
+  const evId = parseInt(req.params.id, 10);
+  const ev = data.evaluaciones.find((e) => e.id === evId);
+  if (!ev) return res.status(404).json({ error: 'Evaluacion no encontrada.' });
+
+  const intentos = data.intentos
+    .filter((i) => i.userId === req.user.id && i.evaluacionId === evId)
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const aprobadoIntento = intentos.find((i) => esAprobado(i.puntaje, ev.preguntas.length, ev.porcentaje));
+  if (!aprobadoIntento) {
+    return res.status(400).json({ error: 'Debes aprobar la evaluacion para obtener el certificado.' });
+  }
+
+  res.json({
+    certificado: {
+      codigo: `ITC-${String(evId).padStart(3, '0')}-${String(aprobadoIntento.id).padStart(4, '0')}`,
+      alumno: req.user.nombre_completo || req.user.nombre,
+      capacitacion: ev.capacitacion,
+      titulo: ev.titulo,
+      puntaje: aprobadoIntento.puntaje,
+      totalPreguntas: ev.preguntas.length,
+      porcentajeObtenido: Math.round((aprobadoIntento.puntaje / ev.preguntas.length) * 100),
+      porcentajeMinimo: ev.porcentaje || config.defaultPorcentajeAprobacion,
+      fecha: aprobadoIntento.fecha
+    }
+  });
+}
+
+module.exports = {
+  login,
+  refresh,
+  logout,
+  estado,
+  tomarEvaluacion,
+  resultado,
+  cambiarPasswordPropia,
+  configurarPreguntaSecreta,
+  recuperarPregunta,
+  recuperarVerificar,
+  recuperarContrasena,
+  miHistorial,
+  certificado
+};

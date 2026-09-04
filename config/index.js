@@ -4,14 +4,50 @@ const dotenv = require('dotenv');
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-module.exports = {
-  port: parseInt(process.env.PORT, 10) || 3000,
+function int(value, fallback) {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isProduction = nodeEnv === 'production';
+
+const config = {
+  port: int(process.env.PORT, 3000),
+  nodeEnv,
+  isProduction,
+  isVercel: process.env.VERCEL === '1',
+
+  // Secretos. En producción NO debe usarse el valor por defecto.
   jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me-in-production',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
   refreshSecret: process.env.REFRESH_SECRET || 'dev-refresh-secret-change-me',
   refreshExpiresIn: process.env.REFRESH_EXPIRES_IN || '7d',
-  loginMaxAttempts: parseInt(process.env.LOGIN_MAX_ATTEMPTS, 10) || 5,
-  loginWindowMs: parseInt(process.env.LOGIN_WINDOW_MS, 10) || 15 * 60 * 1000,
-  isVercel: process.env.VERCEL === '1',
-  nodeEnv: process.env.NODE_ENV || 'development'
+
+  // Seguridad del login (anti fuerza bruta)
+  loginMaxAttempts: int(process.env.LOGIN_MAX_ATTEMPTS, 5),
+  loginWindowMs: int(process.env.LOGIN_WINDOW_MS, 15 * 60 * 1000),
+
+  // Persistencia: si DATABASE_URL está definida se usa Postgres (recomendado en Vercel).
+  // Si no, se usa el archivo local db.json (modo demo / desarrollo).
+  databaseUrl: process.env.DATABASE_URL || '',
+
+  // Parámetros por defecto de las evaluaciones (se pueden sobreescribir por evaluación)
+  defaultIntentosMax: int(process.env.EVALUACION_DEFAULT_INTENTOS, 3),
+  defaultPorcentajeAprobacion: int(process.env.EVALUACION_DEFAULT_PORCENTAJE, 60),
+  defaultDuracionMinutos: int(process.env.EVALUACION_DEFAULT_DURACION, 15),
+
+  // Credenciales iniciales
+  adminUser: process.env.ADMIN_USER || 'admin',
+  adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
+  adminNombre: process.env.ADMIN_NOMBRE || 'Administrador',
+  profesorUser: process.env.PROFESOR_USER || 'GKempe',
+  profesorPassword: process.env.PROFESOR_PASSWORD || '1234',
+  profesorNombre: process.env.PROFESOR_NOMBRE || 'Gustavo Kempe'
 };
+
+if (isProduction && config.jwtSecret === 'dev-secret-change-me-in-production') {
+  console.warn('[config] AVISO: JWT_SECRET usa el valor por defecto. Definelos en las variables de entorno.');
+}
+
+module.exports = config;

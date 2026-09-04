@@ -1,20 +1,19 @@
 const token = Session.getToken();
-const tipo  = Session.getTipo();
+const tipo = Session.getTipo();
 
 if (!token || tipo !== 'alumno') window.location.replace('/');
 
 const evalId = parseInt(sessionStorage.getItem('evalId'));
 if (!evalId) window.location.replace('/dashboard');
 
-const EXAM_MINUTES = 15; // duración del examen en minutos
-
-let evaluacion   = null;
-let respuestas   = [];
+let evaluacion = null;
+let respuestas = [];
+let orden = [];
 let currentIndex = 0;
-let isAnimating  = false;
-let timerRef     = null;
-let timeLeft     = 0;
-const DRAFT_KEY  = `draft_${evalId}`;
+let isAnimating = false;
+let timerRef = null;
+let timeLeft = 0;
+const DRAFT_KEY = `draft_${evalId}`;
 
 document.getElementById('btnBack').addEventListener('click', async () => {
   const salir = await showConfirm({
@@ -29,7 +28,11 @@ document.getElementById('btnBack').addEventListener('click', async () => {
 async function loadEvaluacion() {
   try {
     const res = await apiFetch(`/evaluacion/${evalId}`);
-    if (res.status === 401) { Session.clear(); window.location.replace('/'); return; }
+    if (res.status === 401) {
+      Session.clear();
+      window.location.replace('/');
+      return;
+    }
     const data = await res.json();
     if (!res.ok) {
       document.getElementById('examContent').innerHTML = `
@@ -42,17 +45,25 @@ async function loadEvaluacion() {
     }
 
     evaluacion = data;
-    document.getElementById('examTitle').textContent  = data.titulo;
+    document.getElementById('examTitle').textContent = data.titulo;
     document.getElementById('totalCount').textContent = data.totalPreguntas;
 
-    // Restaurar borrador si existe
+    const duracionMin = (data.duracionMinutos > 0 ? data.duracionMinutos : 15) * 60;
+
+    // Restaurar borrador si existe (misma cantidad de preguntas y orden)
     const draft = loadDraft();
-    if (draft && draft.preguntas === data.totalPreguntas) {
+    if (
+      draft &&
+      draft.preguntas === data.totalPreguntas &&
+      (draft.orden ? draft.orden.length === data.totalPreguntas : true)
+    ) {
       respuestas = draft.respuestas;
-      timeLeft = typeof draft.timeLeft === 'number' ? draft.timeLeft : EXAM_MINUTES * 60;
+      orden = draft.orden || data.orden || [];
+      timeLeft = typeof draft.timeLeft === 'number' ? draft.timeLeft : duracionMin;
     } else {
       respuestas = new Array(data.totalPreguntas).fill(null);
-      timeLeft = EXAM_MINUTES * 60;
+      orden = data.orden || [];
+      timeLeft = duracionMin;
     }
 
     buildFooterDots(data.totalPreguntas);
@@ -69,17 +80,27 @@ async function loadEvaluacion() {
 
 // ── Autoguardado (borrador en sessionStorage) ───────────────────────────────
 function loadDraft() {
-  try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)); } catch { return null; }
+  try {
+    return JSON.parse(sessionStorage.getItem(DRAFT_KEY));
+  } catch {
+    return null;
+  }
 }
 function saveDraft() {
   try {
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
-      preguntas: respuestas.length,
-      respuestas,
-      timeLeft,
-      updatedAt: Date.now()
-    }));
-  } catch {}
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        preguntas: respuestas.length,
+        respuestas,
+        orden,
+        timeLeft,
+        updatedAt: Date.now()
+      })
+    );
+  } catch {
+    /* almacenamiento no disponible */
+  }
 }
 function clearDraft() {
   sessionStorage.removeItem(DRAFT_KEY);
@@ -115,26 +136,29 @@ function updateTimerDisplay() {
 
 function buildFooterDots(total) {
   const container = document.getElementById('footerDots');
-  container.innerHTML = Array.from({ length: total }, (_, i) =>
-    `<div class="footer-dot" id="dot-${i}" title="Pregunta ${i + 1}" onclick="goTo(${i})"></div>`
+  container.innerHTML = Array.from(
+    { length: total },
+    (_, i) => `<div class="footer-dot" id="dot-${i}" title="Pregunta ${i + 1}" onclick="goTo(${i})"></div>`
   ).join('');
 }
 
 function renderQuestion(idx, direction) {
   currentIndex = idx;
-  const p       = evaluacion.preguntas[idx];
+  const p = evaluacion.preguntas[idx];
   const content = document.getElementById('examContent');
 
-  const opciones = p.opciones.map((texto, i) => {
-    const letra = String.fromCharCode(65 + i);
-    return `
+  const opciones = p.opciones
+    .map((texto, i) => {
+      const letra = String.fromCharCode(65 + i);
+      return `
       <button type="button" class="option-btn ${respuestas[idx] === i ? 'selected' : ''}"
         data-q="${idx}" data-opt="${i}"
         onclick="seleccionar(${idx}, ${i}, this)">
         <span class="option-letter">${letra}</span>
         <span class="option-text">${escapeHtml(texto)}</span>
       </button>`;
-  }).join('');
+    })
+    .join('');
 
   const newCard = document.createElement('div');
   newCard.className = `question-card${respuestas[idx] !== null ? ' answered' : ''}`;
@@ -179,14 +203,15 @@ function renderQuestion(idx, direction) {
 
 function seleccionar(qIdx, optIdx, clickedBtn) {
   respuestas[qIdx] = optIdx;
-  document.querySelectorAll(`[data-q="${qIdx}"]`).forEach((btn) =>
-    btn.classList.toggle('selected', btn === clickedBtn)
-  );
+  document
+    .querySelectorAll(`[data-q="${qIdx}"]`)
+    .forEach((btn) => btn.classList.toggle('selected', btn === clickedBtn));
   document.getElementById(`qcard-${qIdx}`)?.classList.add('answered');
   saveDraft();
   updateProgress();
   updateNavButtons();
 }
+window.seleccionar = seleccionar;
 
 function goTo(idx) {
   if (isAnimating || !evaluacion) return;
@@ -194,15 +219,16 @@ function goTo(idx) {
   const direction = idx > currentIndex ? 'next' : 'prev';
   renderQuestion(idx, direction);
 }
+window.goTo = goTo;
 
 function updateProgress() {
   const answered = respuestas.filter((r) => r !== null).length;
-  const total    = respuestas.length;
-  const pct      = total > 0 ? (answered / total) * 100 : 0;
+  const total = respuestas.length;
+  const pct = total > 0 ? (answered / total) * 100 : 0;
 
   document.getElementById('answeredCount').textContent = answered;
-  document.getElementById('progressFill').style.width  = `${pct}%`;
-  document.getElementById('footerText').textContent    = `${currentIndex + 1} / ${total}`;
+  document.getElementById('progressFill').style.width = `${pct}%`;
+  document.getElementById('footerText').textContent = `${currentIndex + 1} / ${total}`;
 
   respuestas.forEach((r, i) => {
     const dot = document.getElementById(`dot-${i}`);
@@ -214,26 +240,34 @@ function updateProgress() {
 
 function updateNavButtons() {
   if (!evaluacion) return;
-  const total       = evaluacion.preguntas.length;
-  const isLast      = currentIndex === total - 1;
+  const total = evaluacion.preguntas.length;
+  const isLast = currentIndex === total - 1;
   const allAnswered = respuestas.every((r) => r !== null);
 
-  const btnPrev      = document.getElementById('btnPrev');
-  const btnNext      = document.getElementById('btnNext');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
   const btnNextLabel = document.getElementById('btnNextLabel');
+  const btnSinResp = document.getElementById('btnPrimeraSinResponder');
 
   btnPrev.disabled = currentIndex === 0;
+  if (btnSinResp) btnSinResp.style.display = allAnswered ? 'none' : 'inline-flex';
 
   if (isLast) {
     btnNextLabel.textContent = 'Enviar examen';
-    btnNext.disabled         = !allAnswered;
+    btnNext.disabled = !allAnswered;
     btnNext.classList.add('btn-submit-action');
   } else {
     btnNextLabel.textContent = 'Siguiente';
-    btnNext.disabled         = false;
+    btnNext.disabled = false;
     btnNext.classList.remove('btn-submit-action');
   }
 }
+
+// Ir a la primera pregunta sin responder (8.6)
+document.getElementById('btnPrimeraSinResponder')?.addEventListener('click', () => {
+  const index = respuestas.findIndex((r) => r === null);
+  if (index !== -1) goTo(index);
+});
 
 document.getElementById('btnPrev').addEventListener('click', () => {
   if (currentIndex > 0) goTo(currentIndex - 1);
@@ -251,8 +285,9 @@ document.getElementById('btnNext').addEventListener('click', () => {
 });
 
 function abrirConfirmacion() {
+  const total = evaluacion.intentosMax || 3;
   document.getElementById('modalText').innerHTML =
-    `Estas por enviar tu examen (intento ${evaluacion.intentoActual} de 3). ` +
+    `Estas por enviar tu examen (intento ${evaluacion.intentoActual} de ${total}). ` +
     `Una vez enviado no podras modificar tus respuestas.`;
   document.getElementById('modalOverlay').classList.add('visible');
 }
@@ -275,7 +310,7 @@ async function enviarExamen() {
     const res = await apiFetch('/resultado', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ evaluacionId: evalId, respuestas }),
+      body: JSON.stringify({ evaluacionId: evalId, respuestas, orden })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(parseError(data));

@@ -27,11 +27,7 @@ function signAccess(user) {
 }
 
 function signRefresh(user, tokenId) {
-  return jwt.sign(
-    { id: user.id, tokenId },
-    config.refreshSecret,
-    { expiresIn: config.refreshExpiresIn }
-  );
+  return jwt.sign({ id: user.id, tokenId }, config.refreshSecret, { expiresIn: config.refreshExpiresIn });
 }
 
 // Middleware opcional que intenta autenticar pero no bloquea
@@ -55,7 +51,8 @@ function auth(req, res, next) {
 }
 
 function profAuth(req, res, next) {
-  if (!req.user || req.user.tipo !== 'profesor') {
+  // El administrador también puede operar el panel de profesor
+  if (!req.user || (req.user.tipo !== 'profesor' && req.user.tipo !== 'admin')) {
     return res.status(403).json({ error: 'Acceso denegado' });
   }
   next();
@@ -68,11 +65,19 @@ function alumnoAuth(req, res, next) {
   next();
 }
 
+function adminAuth(req, res, next) {
+  if (!req.user || req.user.tipo !== 'admin') {
+    return res.status(403).json({ error: 'Solo administradores' });
+  }
+  next();
+}
+
 module.exports = {
   auth,
   authOptional,
   profAuth,
   alumnoAuth,
+  adminAuth,
   signAccess,
   signRefresh,
   verifyRefresh

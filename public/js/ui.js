@@ -36,10 +36,13 @@ function showConfirm({ title, message, confirmText = 'Confirmar', danger = false
     const cancelBtn = overlay.querySelector('.confirm-cancel');
     cancelBtn.onclick = () => close(false);
     okBtn.onclick = () => close(true);
-    overlay.onclick = (e) => { if (e.target === overlay) close(false); };
+    overlay.onclick = (e) => {
+      if (e.target === overlay) close(false);
+    };
     overlay.classList.add('visible');
   });
 }
+window.showConfirm = showConfirm;
 
 // ── Descarga de archivos desde una respuesta fetch ──────────────────────────
 async function downloadFromResponse(res, fallbackName) {
@@ -56,3 +59,4 @@ async function downloadFromResponse(res, fallbackName) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+window.downloadFromResponse = downloadFromResponse;

@@ -4,20 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ITC Evaluaciones - Mis Evaluaciones</title>
+  <meta name="description" content="Tus evaluaciones del Instituto Tecnico de Capacitacion">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0058FF">
+  <link rel="icon" href="/img/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.dataset.fontSize = localStorage.getItem('fontSize') || '100';
+  </script>
 </head>
 <body class="dashboard-body">
 
-  <nav class="navbar">
+  <a href="#main" class="skip-link">Saltar al contenido</a>
+
+  <nav class="navbar" aria-label="Navegacion principal">
     <div class="nav-brand">
-      <img src="/img/logo-itc.svg" alt="ITC" class="nav-logo">
+      <img src="/img/logo-itc.svg" alt="Instituto Tecnico de Capacitacion" class="nav-logo">
     </div>
     <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Cambiar tema oscuro/claro">Oscuro</button>
       <div class="account-menu">
-        <div class="user-badge" id="userMenuBtn">
-          <div class="user-avatar" id="userInitial">A</div>
+        <div class="user-badge" id="userMenuBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <div class="user-avatar" id="userInitial" aria-hidden="true">A</div>
           <div class="user-info">
             <span class="user-name" id="userName">alumno</span>
             <span class="user-role">Alumno</span>
@@ -25,19 +36,21 @@
         </div>
         <div class="account-dropdown" id="accountDropdown">
           <button class="account-dropdown-item" id="btnChangePassword">Cambiar contrasena</button>
+          <button class="account-dropdown-item" id="btnSecurityQuestion">Configurar pregunta secreta</button>
+          <button class="account-dropdown-item" id="btnFontSize" data-level="0">Tamanio de letra: 100%</button>
           <button class="account-dropdown-item" id="btnLogout">Cerrar sesion</button>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="dashboard-main">
+  <main class="dashboard-main" id="main">
     <div class="welcome-section">
       <h1 class="welcome-title">Bienvenido/a, <span id="welcomeName">Alumno</span></h1>
       <p class="welcome-subtitle" id="welcomeSub">Tus evaluaciones disponibles.</p>
-      <div class="view-tabs">
-        <button class="view-tab active" data-view="evaluaciones">Evaluaciones</button>
-        <button class="view-tab" data-view="historial">Mi historial</button>
+      <div class="view-tabs" role="tablist" aria-label="Vistas">
+        <button class="view-tab active" data-view="evaluaciones" role="tab" aria-selected="true">Evaluaciones</button>
+        <button class="view-tab" data-view="historial" role="tab" aria-selected="false">Mi historial</button>
       </div>
     </div>
 
@@ -50,9 +63,9 @@
     <div id="historialContainer" class="hidden"></div>
   </main>
 
-  <div class="modal-overlay" id="passwordModal">
+  <div class="modal-overlay" id="passwordModal" role="dialog" aria-modal="true" aria-labelledby="pwModalTitle">
     <div class="modal-card">
-      <div class="modal-title">Cambiar Contrasena</div>
+      <div class="modal-title" id="pwModalTitle">Cambiar Contrasena</div>
       <form id="passwordForm" class="login-form">
         <div class="form-group">
           <label for="pwActual">Contrasena actual</label>
@@ -70,6 +83,32 @@
         <div class="modal-actions">
           <button type="button" class="btn-modal-cancel" id="btnPwCancel">Cancelar</button>
           <button type="submit" class="btn-modal-confirm" id="btnPwSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="secQuestionModal" role="dialog" aria-modal="true" aria-labelledby="secQuestionTitle">
+    <div class="modal-card">
+      <div class="modal-title" id="secQuestionTitle">Configurar pregunta secreta</div>
+      <div class="modal-text">Se usa para recuperar tu contrasena si la olvidas.</div>
+      <form id="secQuestionForm" class="login-form">
+        <div class="form-group">
+          <label for="secPregunta">Pregunta</label>
+          <div class="input-wrapper"><input type="text" id="secPregunta" placeholder="Ej: Nombre de tu mascota" required></div>
+        </div>
+        <div class="form-group">
+          <label for="secRespuesta">Respuesta</label>
+          <div class="input-wrapper"><input type="text" id="secRespuesta" placeholder="Tu respuesta" required></div>
+        </div>
+        <div class="form-group">
+          <label for="secPassword">Contrasena actual</label>
+          <div class="input-wrapper"><input type="password" id="secPassword" required></div>
+        </div>
+        <div class="error-message" id="secError"><span id="secErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnSecCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnSecSave">Guardar</button>
         </div>
       </form>
     </div>

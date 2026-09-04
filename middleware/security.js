@@ -43,12 +43,15 @@ function loginRateLimiter(req, res, next) {
 }
 
 // Limpieza periódica para evitar fuga de memoria
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of attempts.entries()) {
-    if (!v.blockedUntil || now > v.blockedUntil) attempts.delete(k);
-  }
-}, 60 * 60 * 1000).unref();
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [k, v] of attempts.entries()) {
+      if (!v.blockedUntil || now > v.blockedUntil) attempts.delete(k);
+    }
+  },
+  60 * 60 * 1000
+).unref();
 
 // Útil en tests para limpiar el estado entre casos
 function clearLoginAttempts() {
