@@ -20,7 +20,13 @@ function verifyRefresh(token) {
 
 function signAccess(user) {
   return jwt.sign(
-    { id: user.id, nombre: user.nombre, tipo: user.tipo, nombre_completo: user.nombre_completo },
+    {
+      id: user.id,
+      nombre: user.nombre,
+      tipo: user.tipo,
+      nombre_completo: user.nombre_completo,
+      dni: user.dni
+    },
     config.jwtSecret,
     { expiresIn: config.jwtExpiresIn }
   );

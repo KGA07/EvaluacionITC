@@ -7,6 +7,19 @@ if (tipo === 'profesor' || tipo === 'admin') window.location.replace('/profesor'
 const evId = new URLSearchParams(window.location.search).get('evaluacionId');
 const main = document.getElementById('certificate');
 
+function formatDNI(dni) {
+  const s = String(dni || '').replace(/\D/g, '');
+  return s ? s.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+}
+
+function formatFechaLarga(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
+
 async function cargarCertificado() {
   if (!evId) {
     main.innerHTML = `<div class="loading-container"><h3>Falta el identificador de la evaluacion</h3><a href="/dashboard" class="btn-volver">Volver</a></div>`;
@@ -26,43 +39,64 @@ async function cargarCertificado() {
     }
 
     const c = data.certificado;
+    const dni = formatDNI(c.dni);
+    const sitio = window.location.origin;
+
     main.innerHTML = `
       <div class="certificado-sheet" role="document" aria-label="Certificado de aprobacion">
-        <div class="cert-top">
-          <img src="/img/logo-itc.svg" alt="Instituto Tecnico de Capacitacion" class="cert-logo">
-          <span class="cert-logo-divider" aria-hidden="true"></span>
-          <img src="/img/logo-udemm.svg" alt="UDEM" class="cert-logo cert-logo-sub">
+        <header class="cert-header">
+          <div class="cert-header-side">
+            <img src="/img/logo-itc.svg" alt="Informatic Training Center" class="cert-header-logo">
+            <span class="cert-header-text">${escapeHtml(c.institucion)}</span>
+          </div>
+          <div class="cert-header-center">
+            <h1 class="cert-header-title">${escapeHtml(c.institucion)}</h1>
+          </div>
+          <div class="cert-header-side cert-header-side-right">
+            <img src="/img/logo-udemm.svg" alt="UdeMM" class="cert-header-logo">
+            <span class="cert-header-text">${escapeHtml(c.universidad)}</span>
+          </div>
+        </header>
+
+        <div class="cert-apertura">
+          <p class="cert-por-cuanto">Por cuanto</p>
+          <h2 class="cert-alumno">${escapeHtml(c.alumno)}</h2>
+          ${dni ? `<p class="cert-dni">DNI: ${dni}</p>` : ''}
         </div>
-        <div class="cert-codigo">${escapeHtml(c.codigo)}</div>
-        <div class="cert-title">Certificado de Aprobacion</div>
-        <div class="cert-subtitle">Instituto Tecnico de Capacitacion</div>
-        <div class="cert-ornament"></div>
-        <p class="cert-text">Se otorga el presente certificado a</p>
-        <div class="cert-alumno">${escapeHtml(c.alumno)}</div>
-        <p class="cert-text">por haber aprobado la capacitacion</p>
-        <div class="cert-capacitacion">${escapeHtml(c.capacitacion)}</div>
-        <div class="cert-titulo">${escapeHtml(c.titulo)}</div>
-        <div class="cert-meta">
-          <span class="cert-meta-item"><strong>Puntaje:</strong> ${c.puntaje}/${c.totalPreguntas}</span>
-          <span class="cert-meta-item"><strong>Porcentaje obtenido:</strong> ${c.porcentajeObtenido}%</span>
-          <span class="cert-meta-item"><strong>Minimo requerido:</strong> ${c.porcentajeMinimo}%</span>
+
+        <p class="cert-cuerpo">
+          Ha participado y aprobado la capacitacion en &laquo;${escapeHtml(c.capacitacion)}&raquo;,
+          superando la evaluacion correspondiente con un puntaje de
+          <strong>${c.puntaje}/${c.totalPreguntas}</strong>
+          (${c.porcentajeObtenido}%), siendo el minimo requerido del
+          <strong>${c.porcentajeMinimo}%</strong>.
+        </p>
+
+        <p class="cert-resolucion">Se le extiende el presente certificado de <strong class="cert-aprobacion">APROBACION</strong>.</p>
+
+        <div class="cert-firmas">
+          <div class="cert-firma">
+            <div class="cert-firma-linea"></div>
+            <div class="cert-firma-titulo">Firma del Director</div>
+            <div class="cert-firma-nombre">${escapeHtml(c.director)}</div>
+            <div class="cert-firma-cargo">${escapeHtml(c.directorCargo)}</div>
+          </div>
+          <div class="cert-firma">
+            <div class="cert-firma-linea"></div>
+            <div class="cert-firma-titulo">Firma del Instructor</div>
+            <div class="cert-firma-nombre">${escapeHtml(c.instructor)}</div>
+            <div class="cert-firma-cargo">${escapeHtml(c.instructorCargo)}</div>
+          </div>
         </div>
-        <div class="cert-ornament"></div>
-        <div class="cert-footer">
-          <div class="cert-fecha">Fecha: ${formatCertFecha(c.fecha)}</div>
-          <div class="cert-firma">Firma del instructor</div>
-        </div>
+
+        <footer class="cert-footer">
+          <div class="cert-footer-item cert-fecha">Fecha de Emision: <strong>${formatFechaLarga(c.fecha)}</strong></div>
+          <div class="cert-footer-item cert-validacion">Para verificar la autenticidad de este documento acceda a: <a href="${escapeHtml(sitio)}/certificado" target="_blank" rel="noopener">${escapeHtml(sitio)}/certificado</a> e ingrese el codigo.</div>
+          <div class="cert-footer-item cert-codigo">Codigo del certificado: <strong>${escapeHtml(c.codigo)}</strong></div>
+        </footer>
       </div>`;
   } catch (err) {
     main.innerHTML = `<div class="loading-container"><h3>Error al cargar el certificado</h3><p>${err.message}</p></div>`;
-  }
-}
-
-function formatCertFecha(iso) {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return iso;
   }
 }
 

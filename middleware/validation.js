@@ -106,7 +106,14 @@ const validations = {
       .withMessage('La contrasena es obligatoria.')
       .isLength({ min: 4, max: 100 })
       .withMessage('La contrasena debe tener al menos 4 caracteres.'),
-    body('nombre_completo').optional().trim().isLength({ max: 100 }).withMessage('Nombre demasiado largo.')
+    body('nombre_completo').optional().trim().isLength({ max: 100 }).withMessage('Nombre demasiado largo.'),
+    body('dni')
+      .optional({ values: 'falsy' })
+      .trim()
+      .isNumeric()
+      .withMessage('El DNI debe contener solo numeros.')
+      .isInt({ min: 1000000, max: 99999999 })
+      .withMessage('El DNI debe tener entre 7 y 8 digitos.')
   ],
   crearProfesor: [
     body('nombre')

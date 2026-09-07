@@ -4,6 +4,11 @@ const tipo = Session.getTipo();
 if (!token || (tipo !== 'profesor' && tipo !== 'admin')) window.location.replace('/');
 const isAdmin = tipo === 'admin';
 
+function formatearDNI(dni) {
+  const s = String(dni || '').replace(/\D/g, '');
+  return s ? s.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+}
+
 const nombre = sessionStorage.getItem('nombre') || 'Profesor';
 document.getElementById('userName').textContent = nombre;
 document.getElementById('userInitial').textContent =
@@ -129,7 +134,7 @@ function renderAlumnosTable(alumnos) {
   const tbody = document.getElementById('alumnosBody');
   if (slice.length === 0) {
     tbody.innerHTML =
-      '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:30px;">No se encontraron alumnos.</td></tr>';
+      '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">No se encontraron alumnos.</td></tr>';
     document.getElementById('alumnosPagination').innerHTML = '';
     return;
   }
@@ -139,6 +144,7 @@ function renderAlumnosTable(alumnos) {
       (a) => `
     <tr>
       <td class="td-nombre">${escapeHtml(a.nombre_completo)}</td>
+      <td class="td-dni">${a.dni ? escapeHtml(formatearDNI(a.dni)) : '<span style="color:var(--text-muted)">-</span>'}</td>
       <td class="td-usuario">${escapeHtml(a.nombre)}</td>
       <td>
         <div class="inline-actions">
@@ -199,6 +205,7 @@ function verDetalle(alumnoId) {
   if (!a) return;
   document.getElementById('detalleTitle').textContent = `Detalle: ${a.nombre_completo}`;
   document.getElementById('detalleContainer').innerHTML = `
+    <p class="detalle-meta">${a.dni ? `DNI: ${formatearDNI(a.dni)}` : 'DNI: no cargado'} - Usuario: ${escapeHtml(a.nombre)}</p>
     <table>
       <thead><tr><th>Evaluacion</th><th>Intentos</th><th>Mejor</th><th>Estado</th><th></th></tr></thead>
       <tbody>
@@ -357,6 +364,7 @@ studentForm.addEventListener('submit', async (e) => {
   modalError.classList.remove('visible');
 
   const nombre_completo = document.getElementById('studentNombre').value.trim();
+  const dni = document.getElementById('studentDni').value.trim();
   const nombre = document.getElementById('studentUsuario').value.trim();
   const password = document.getElementById('studentPassword').value.trim();
 
@@ -370,7 +378,7 @@ studentForm.addEventListener('submit', async (e) => {
     const res = await apiFetch('/profesor/alumnos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, password, nombre_completo })
+      body: JSON.stringify({ nombre, password, nombre_completo, dni })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(parseError(data));

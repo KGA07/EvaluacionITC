@@ -38,6 +38,7 @@ async function listarAlumnos(req, res) {
       id: u.id,
       nombre: u.nombre,
       nombre_completo: u.nombre_completo,
+      dni: u.dni || '',
       tienePreguntaSecreta: !!u.preguntaSecreta
     }))
     .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
@@ -46,7 +47,7 @@ async function listarAlumnos(req, res) {
 
 // ── Crear alumno ───────────────────────────────────────────────────────────
 async function crearAlumno(req, res) {
-  const { nombre, password, nombre_completo } = req.body;
+  const { nombre, password, nombre_completo, dni } = req.body;
   const data = await db.loadData();
   if (data.users.find((u) => u.nombre === nombre)) {
     return res.status(400).json({ error: 'Ya existe un usuario con ese nombre.' });
@@ -58,12 +59,13 @@ async function crearAlumno(req, res) {
     nombre,
     password: bcrypt.hashSync(password, 10),
     tipo: 'alumno',
-    nombre_completo: nombre_completo || nombre
+    nombre_completo: nombre_completo || nombre,
+    dni: dni ? String(dni).trim() : ''
   });
   data.nextUserId = newId + 1;
   registrarLog(data, 'crear_alumno', { alumnoId: newId, nombre }, req.user);
   await db.saveData();
-  res.json({ id: newId, nombre, nombre_completo: nombre_completo || nombre });
+  res.json({ id: newId, nombre, nombre_completo: nombre_completo || nombre, dni: dni || '' });
 }
 
 // ── Eliminar alumno ────────────────────────────────────────────────────────
@@ -278,6 +280,7 @@ async function estadisticas(req, res) {
       id: a.id,
       nombre: a.nombre,
       nombre_completo: a.nombre_completo,
+      dni: a.dni || '',
       evaluacionesPermitidas: Array.isArray(a.evaluacionesPermitidas) ? a.evaluacionesPermitidas.slice() : null,
       evaluaciones: data.evaluaciones.map((ev) => {
         const intentos = intentosA.filter((i) => i.evaluacionId === ev.id);

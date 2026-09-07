@@ -331,7 +331,7 @@ describe('ITC Evaluaciones API', () => {
           await request(app)
             .post('/api/profesor/alumnos')
             .set('Authorization', `Bearer ${login.body.token}`)
-            .send({ nombre: 'alumno1', password: 'pass123', nombre_completo: 'Alumno Uno' });
+            .send({ nombre: 'alumno1', password: 'pass123', nombre_completo: 'Alumno Uno', dni: '30123456' });
         });
       const login = await request(app)
         .post('/api/login')
@@ -475,6 +475,9 @@ describe('ITC Evaluaciones API', () => {
       expect(cert.status).toBe(200);
       expect(cert.body.certificado.codigo).toMatch(/^ITC-/);
       expect(cert.body.certificado.alumno).toBe('Alumno Uno');
+      expect(cert.body.certificado.dni).toBe('30123456');
+      expect(cert.body.certificado.director).toBeTruthy();
+      expect(cert.body.certificado.instructor).toBeTruthy();
     });
 
     it('agotar intentos bloquea nuevas evaluaciones', async () => {
@@ -560,7 +563,7 @@ describe('ITC Evaluaciones API', () => {
           await request(app)
             .post('/api/profesor/alumnos')
             .set('Authorization', `Bearer ${login.body.token}`)
-            .send({ nombre: 'alumno1', password: 'pass123', nombre_completo: 'Alumno Uno' });
+            .send({ nombre: 'alumno1', password: 'pass123', nombre_completo: 'Alumno Uno', dni: '30123456' });
         });
       const login = await request(app)
         .post('/api/login')

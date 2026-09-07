@@ -406,13 +406,20 @@ async function certificado(req, res) {
     certificado: {
       codigo: `ITC-${String(evId).padStart(3, '0')}-${String(aprobadoIntento.id).padStart(4, '0')}`,
       alumno: req.user.nombre_completo || req.user.nombre,
+      dni: req.user.dni || '',
       capacitacion: ev.capacitacion,
       titulo: ev.titulo,
       puntaje: aprobadoIntento.puntaje,
       totalPreguntas: ev.preguntas.length,
       porcentajeObtenido: Math.round((aprobadoIntento.puntaje / ev.preguntas.length) * 100),
       porcentajeMinimo: ev.porcentaje || config.defaultPorcentajeAprobacion,
-      fecha: aprobadoIntento.fecha
+      fecha: aprobadoIntento.fecha,
+      institucion: config.institucion,
+      universidad: config.universidad,
+      director: config.directorNombre,
+      directorCargo: config.directorCargo,
+      instructor: config.profesorNombre,
+      instructorCargo: config.profesorCargo
     }
   });
 }

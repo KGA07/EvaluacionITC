@@ -65,7 +65,14 @@ const config = {
   adminNombre: process.env.ADMIN_NOMBRE || 'Administrador',
   profesorUser: process.env.PROFESOR_USER || 'GKempe',
   profesorPassword: process.env.PROFESOR_PASSWORD || '1234',
-  profesorNombre: process.env.PROFESOR_NOMBRE || 'Gustavo Kempe'
+  profesorNombre: process.env.PROFESOR_NOMBRE || 'Gustavo Kempe',
+  profesorCargo: process.env.PROFESOR_CARGO || 'Instructor',
+
+  // Datos institucionales del certificado
+  directorNombre: process.env.DIRECTOR_NOMBRE || 'Equipo Directivo',
+  directorCargo: process.env.DIRECTOR_CARGO || 'Director',
+  institucion: 'Informatic\u00ae Training Center',
+  universidad: 'UdeMM Universidad de la Marina Mercante'
 };
 
 if (isProduction && config.jwtSecret === 'dev-secret-change-me-in-production') {
