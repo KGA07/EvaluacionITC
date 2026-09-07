@@ -72,6 +72,7 @@ const config = {
   directorNombre: process.env.DIRECTOR_NOMBRE || 'Equipo Directivo',
   directorCargo: process.env.DIRECTOR_CARGO || 'Director',
   institucion: 'Informatic\u00ae Training Center',
+  institucionTitulo: process.env.INSTITUCION_TITULO || 'Instituto T\u00e9cnico de Capacitaci\u00f3n',
   universidad: 'UdeMM Universidad de la Marina Mercante'
 };
 

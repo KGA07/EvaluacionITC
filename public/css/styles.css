@@ -2803,31 +2803,43 @@ html[data-font-size='125'] {
 }
 .certificado-sheet {
   width: 100%;
-  max-width: 900px;
+  max-width: 1060px;
+  aspect-ratio: 297 / 210;
   background: #fff;
   color: #1d2733;
   border: 1px solid #d9c3a3;
   border-radius: var(--radius-xl);
-  padding: 48px 56px;
+  padding: 52px 60px;
   box-shadow: var(--shadow-xl);
   position: relative;
-  font-family: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  font-family: 'Playfair Display', 'EB Garamond', Georgia, 'Times New Roman', serif;
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  overflow: hidden;
+}
+.certificado-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 1px solid #c9a86a;
+  border-radius: 8px;
+  pointer-events: none;
 }
 .cert-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 2px solid #c9a86a;
-  padding-bottom: 18px;
 }
 .cert-header-side {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  flex: 0 1 30%;
+  flex: 0 1 26%;
 }
 .cert-header-side-right {
   align-items: flex-end;
@@ -2835,6 +2847,7 @@ html[data-font-size='125'] {
 .cert-header-logo {
   height: 64px;
   width: auto;
+  object-fit: contain;
 }
 .cert-header-text {
   font-size: 0.72rem;
@@ -2852,81 +2865,79 @@ html[data-font-size='125'] {
 }
 .cert-header-title {
   font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: #1d2733;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .cert-apertura {
   text-align: center;
-  margin: 42px 0 26px;
+  margin: 6px 0;
 }
 .cert-por-cuanto {
   font-style: italic;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   color: #4a5568;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 .cert-alumno {
   font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  font-size: 2.4rem;
+  font-size: 2.6rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
   word-break: break-word;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 .cert-dni {
-  margin: 8px 0 0;
-  font-size: 1rem;
+  margin: 10px 0 0;
+  font-size: 1.05rem;
   color: #4a5568;
 }
 .cert-cuerpo {
   max-width: 720px;
-  margin: 0 auto 18px;
+  margin: 0 auto;
   text-align: justify;
   text-align-last: center;
-  font-size: 1.12rem;
+  font-size: 1.15rem;
   color: #2d3748;
+  line-height: 1.6;
+}
+.cert-cuerpo p {
+  margin: 0;
 }
 .cert-resolucion {
   max-width: 720px;
-  margin: 0 auto 40px;
+  margin: 18px auto 0;
   text-align: center;
-  font-size: 1.18rem;
+  font-size: 1.2rem;
   color: #1d2733;
 }
 .cert-aprobacion {
   font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  font-size: 1.42rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #a16207;
   letter-spacing: 0.06em;
 }
 .cert-firmas {
   display: flex;
-  justify-content: space-around;
-  gap: 48px;
-  margin: 8px 24px 44px;
+  justify-content: center;
+  gap: 120px;
+  margin: 8px 0 0;
 }
 .cert-firma {
-  flex: 1;
-  max-width: 260px;
+  flex: 0 1 auto;
+  width: 220px;
   text-align: center;
 }
 .cert-firma-linea {
-  border-top: 1.5px solid #1d2733;
-  margin-bottom: 10px;
-}
-.cert-firma-titulo {
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #4a5568;
-  text-transform: uppercase;
+  border-top: 1px solid #1d2733;
+  width: 200px;
+  margin: 0 auto 10px;
 }
 .cert-firma-nombre {
   font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
@@ -2940,14 +2951,22 @@ html[data-font-size='125'] {
   font-style: italic;
   color: #4a5568;
 }
+.cert-firma-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #4a5568;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
 .cert-footer {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 20px;
   border-top: 1px solid #d9c3a3;
-  padding-top: 14px;
-  font-size: 0.78rem;
+  padding-top: 12px;
+  font-size: 0.8rem;
   color: #4a5568;
 }
 .cert-footer-item {
@@ -2974,6 +2993,7 @@ html[data-font-size='125'] {
 @media (max-width: 700px) {
   .certificado-sheet {
     padding: 28px 18px;
+    aspect-ratio: auto;
   }
   .cert-header {
     flex-wrap: wrap;
@@ -2998,7 +3018,7 @@ html[data-font-size='125'] {
     height: 52px;
   }
   .cert-alumno {
-    font-size: 1.7rem;
+    font-size: 1.9rem;
   }
   .cert-firmas {
     flex-direction: column;
@@ -3021,20 +3041,46 @@ html[data-font-size='125'] {
 }
 
 @media print {
-  .certificado-navbar {
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+  }
+  .certificado-navbar,
+  .certificado-navbar *,
+  .skip-link {
     display: none !important;
   }
   .certificado-body {
     background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .certificado-main {
-    padding: 0;
-    display: block;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
   }
   .certificado-sheet {
-    box-shadow: none;
-    border-radius: 0;
-    max-width: 100%;
+    width: 100vw;
+    height: 100vh;
+    max-width: none !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 30px 44px;
+    box-shadow: none !important;
+    aspect-ratio: auto;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .certificado-sheet::before {
+    inset: 10px;
   }
 }
 

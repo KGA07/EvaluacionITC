@@ -415,6 +415,7 @@ async function certificado(req, res) {
       porcentajeMinimo: ev.porcentaje || config.defaultPorcentajeAprobacion,
       fecha: aprobadoIntento.fecha,
       institucion: config.institucion,
+      institucionTitulo: config.institucionTitulo,
       universidad: config.universidad,
       director: config.directorNombre,
       directorCargo: config.directorCargo,

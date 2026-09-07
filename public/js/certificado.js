@@ -50,7 +50,7 @@ async function cargarCertificado() {
             <span class="cert-header-text">${escapeHtml(c.institucion)}</span>
           </div>
           <div class="cert-header-center">
-            <h1 class="cert-header-title">${escapeHtml(c.institucion)}</h1>
+            <h1 class="cert-header-title">${escapeHtml(c.institucionTitulo)}</h1>
           </div>
           <div class="cert-header-side cert-header-side-right">
             <img src="/img/logo-udemm.svg" alt="UdeMM" class="cert-header-logo">
@@ -58,41 +58,41 @@ async function cargarCertificado() {
           </div>
         </header>
 
-        <div class="cert-apertura">
+        <section class="cert-apertura">
           <p class="cert-por-cuanto">Por cuanto</p>
           <h2 class="cert-alumno">${escapeHtml(c.alumno)}</h2>
           ${dni ? `<p class="cert-dni">DNI: ${dni}</p>` : ''}
-        </div>
+        </section>
 
-        <p class="cert-cuerpo">
-          Ha participado y aprobado la capacitacion en &laquo;${escapeHtml(c.capacitacion)}&raquo;,
-          superando la evaluacion correspondiente con un puntaje de
-          <strong>${c.puntaje}/${c.totalPreguntas}</strong>
-          (${c.porcentajeObtenido}%), siendo el minimo requerido del
-          <strong>${c.porcentajeMinimo}%</strong>.
-        </p>
+        <section class="cert-cuerpo">
+          <p>
+            Ha participado y aprobado la capacitacion en &laquo;${escapeHtml(c.capacitacion)}&raquo;,
+            superando la evaluacion correspondiente con un puntaje de
+            ${c.puntaje}/${c.totalPreguntas} (${c.porcentajeObtenido}%), siendo el minimo
+            requerido del ${c.porcentajeMinimo}%.
+          </p>
+          <p class="cert-resolucion">Se le extiende el presente certificado de <strong class="cert-aprobacion">APROBACION</strong>.</p>
+        </section>
 
-        <p class="cert-resolucion">Se le extiende el presente certificado de <strong class="cert-aprobacion">APROBACION</strong>.</p>
-
-        <div class="cert-firmas">
+        <section class="cert-firmas">
           <div class="cert-firma">
             <div class="cert-firma-linea"></div>
-            <div class="cert-firma-titulo">Firma del Director</div>
             <div class="cert-firma-nombre">${escapeHtml(c.director)}</div>
             <div class="cert-firma-cargo">${escapeHtml(c.directorCargo)}</div>
+            <div class="cert-firma-label">Firma del Director</div>
           </div>
           <div class="cert-firma">
             <div class="cert-firma-linea"></div>
-            <div class="cert-firma-titulo">Firma del Instructor</div>
             <div class="cert-firma-nombre">${escapeHtml(c.instructor)}</div>
             <div class="cert-firma-cargo">${escapeHtml(c.instructorCargo)}</div>
+            <div class="cert-firma-label">Firma del Instructor</div>
           </div>
-        </div>
+        </section>
 
         <footer class="cert-footer">
-          <div class="cert-footer-item cert-fecha">Fecha de Emision: <strong>${formatFechaLarga(c.fecha)}</strong></div>
-          <div class="cert-footer-item cert-validacion">Para verificar la autenticidad de este documento acceda a: <a href="${escapeHtml(sitio)}/certificado" target="_blank" rel="noopener">${escapeHtml(sitio)}/certificado</a> e ingrese el codigo.</div>
-          <div class="cert-footer-item cert-codigo">Codigo del certificado: <strong>${escapeHtml(c.codigo)}</strong></div>
+          <div class="cert-footer-item cert-fecha">Fecha de Emision: ${formatFechaLarga(c.fecha)}</div>
+          <div class="cert-footer-item cert-validacion">Para verificar la autenticidad de este documento acceda a: ${escapeHtml(sitio)}/certificado e ingrese el codigo.</div>
+          <div class="cert-footer-item cert-codigo">Codigo del certificado: ${escapeHtml(c.codigo)}</div>
         </footer>
       </div>`;
   } catch (err) {
