@@ -42,6 +42,7 @@ function showView(name) {
   document.getElementById('viewAlumnos').classList.toggle('hidden', name !== 'alumnos');
   document.getElementById('viewEvaluaciones').classList.toggle('hidden', name !== 'evaluaciones');
   document.getElementById('viewEstadisticas').classList.toggle('hidden', name !== 'estadisticas');
+  document.getElementById('viewTemas').classList.toggle('hidden', name !== 'temas');
   document.getElementById('viewDetalle').classList.toggle('hidden', name !== 'detalle');
   document.getElementById('viewAdmin').classList.toggle('hidden', name !== 'admin');
   if (name !== 'detalle')
@@ -61,6 +62,7 @@ document.querySelectorAll('.cap-item').forEach((item) => {
       renderAlumnosTable(allData.alumnosDetalle);
     }
     if (item.dataset.view === 'evaluaciones') loadEvaluaciones();
+    if (item.dataset.view === 'temas') loadTemas();
     if (item.dataset.view === 'admin') loadAdmin();
   });
 });
@@ -597,6 +599,95 @@ async function loadEvaluaciones() {
     }
   } catch (err) {
     container.innerHTML = `<p style="color:var(--error);text-align:center;padding:20px;">${err.message}</p>`;
+  }
+}
+
+// ── Galeria de Temas Visuales (solo admin) ─────────────────────────────────
+function temaColor(slug) {
+  return { robotica: '#7c3aed', programacion: '#0f766e', marketing: '#db2777', diseno: '#ea580c', pc: '#0891b2', ia: '#6366f1', administracion: '#475569', tecnico: '#ca8a04', salud: '#059669', ingles: '#0284c7', general: '#0058ff' }[slug] || '#0058ff';
+}
+
+function temaGlifo(slug) {
+  return { robotica: '\u{1F916}', programacion: '\u{1F4BB}', marketing: '\u{1F4C8}', diseno: '\u{1F3A8}', pc: '\u{1F9ED}', ia: '\u{1F9E0}', administracion: '\u{1F4CA}', tecnico: '\u2699\uFE0F', salud: '\u2695\uFE0F', ingles: '\u{1F30D}', general: '\u2728' }[slug] || '\u2728';
+}
+
+async function loadTemas() {
+  const container = document.getElementById('temaGallery');
+  const select = document.getElementById('temaEvalSelect');
+  try {
+    const res = await apiFetch('/profesor/evaluaciones');
+    const data = await res.json();
+    if (!res.ok) throw new Error(parseError(data));
+    evalsList = data.evaluaciones;
+
+    select.innerHTML =
+      evalsList
+        .map((ev) => `<option value="${ev.id}">${escapeHtml(ev.capacitacion)}${ev.totalPreguntas ? ` (${ev.totalPreguntas} preg.)` : ''}</option>`)
+        .join('') || '<option value="">Sin evaluaciones</option>';
+
+    const elegida = parseInt(select.value, 10) || (evalsList[0] && evalsList[0].id);
+    if (!elegida) {
+      container.innerHTML =
+        '<p style="color:var(--text-muted);text-align:center;padding:30px;">No hay evaluaciones todavia. Crea una en Gestionar Evaluaciones.</p>';
+      select.innerHTML = '<option value="">Sin evaluaciones</option>';
+      return;
+    }
+    renderTemaGallery(elegida);
+    select.onchange = () => renderTemaGallery(parseInt(select.value, 10));
+  } catch (err) {
+    container.innerHTML = `<p style="color:var(--error);text-align:center;padding:20px;">${err.message}</p>`;
+  }
+}
+
+function renderTemaGallery(evalId) {
+  const container = document.getElementById('temaGallery');
+  const ev = evalsList.find((e) => e.id === evalId);
+  const actual = (ev && ev.tema) || 'auto';
+
+  const temas = Object.keys(TEMA_CAPACITACION);
+  container.innerHTML = `
+    <div class="tema-grid">
+      ${temas
+        .map((slug) => {
+          const color = temaColor(slug);
+          const activo = actual === slug;
+          return `
+        <div class="tema-card ${activo ? 'activo' : ''}" style="--tema-card:${color};">
+          <div class="tema-card-preview">
+            <span class="tema-card-glifo">${temaGlifo(slug)}</span>
+          </div>
+          <div class="tema-card-info">
+            <span class="tema-card-nombre">${TEMA_CAPACITACION[slug].etiqueta}</span>
+            ${activo ? '<span class="tema-card-badge">Asignado</span>' : ''}
+          </div>
+          <div class="tema-card-colores">
+            <span style="background:${color};"></span>
+            <span style="background:color-mix(in srgb, ${color} 60%, #000);"></span>
+          </div>
+          <button class="btn-sm" style="width:100%;justify-content:center;${activo ? 'opacity:.55;' : ''}" ${activo ? 'disabled' : ''} onclick="asignarTemaGaleria(${evalId}, '${slug}')">${activo ? 'Asignado' : 'Usar este tema'}</button>
+        </div>`;
+        })
+        .join('')}
+    </div>
+    <div class="tema-modo-auto" style="margin-top:14px;">
+      <button class="btn-sm" ${actual === 'auto' ? 'disabled' : ''} onclick="asignarTemaGaleria(${evalId}, 'auto')">Restablecer a deteccion automatica</button>
+      <span style="color:var(--text-muted);font-size:.8rem;">El tema se detecta solo por las palabras clave de la capacitacion.</span>
+    </div>`;
+}
+
+async function asignarTemaGaleria(evalId, tema) {
+  try {
+    const res = await apiFetch(`/admin/evaluaciones/${evalId}/tema`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tema })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(parseError(data));
+    toast(tema === 'auto' ? 'Tema restablecido a automatico.' : 'Tema visual asignado.', 'success');
+    loadTemas();
+  } catch (err) {
+    toast(`Error: ${err.message}`, 'error');
   }
 }
 
@@ -1225,6 +1316,7 @@ window.toggleEvaluacion = toggleEvaluacion;
 window.eliminarEvaluacion = eliminarEvaluacion;
 window.changeProfPassword = changeProfPassword;
 window.deleteProfesor = deleteProfesor;
+window.asignarTemaGaleria = asignarTemaGaleria;
 
 function formatFecha(iso) {
   try {

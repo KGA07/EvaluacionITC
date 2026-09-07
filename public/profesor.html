@@ -63,6 +63,7 @@
           <ul class="cap-list">
             <li class="cap-item active" data-view="alumnos">Gestionar Alumnos</li>
             <li class="cap-item" data-view="evaluaciones">Gestionar Evaluaciones</li>
+            <li class="cap-item admin-only hidden" data-view="temas">Temas Visuales</li>
             <li class="cap-item" data-view="estadisticas">Estadisticas por Evaluacion</li>
             <li class="cap-item admin-only hidden" data-view="admin">Administracion</li>
           </ul>
@@ -105,6 +106,20 @@
           </div>
 
           <div id="viewEstadisticas" class="hidden"></div>
+
+          <div id="viewTemas" class="hidden">
+            <div class="section-header">
+              <h2 class="section-title">Temas Visuales</h2>
+              <div class="section-actions">
+                <label for="temaEvalSelect" class="tema-select-label">Asignar a:</label>
+                <select id="temaEvalSelect" class="search-input" style="width:100%;max-width:320px;height:44px;"></select>
+              </div>
+            </div>
+            <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;">
+              Elegi una evaluacion arriba y luego toca el tema visual que quieras aplicarle. El fondo acompañara al examen con referencias de esa capacitacion sin distraer de las preguntas.
+            </p>
+            <div id="temaGallery" class="tema-gallery"></div>
+          </div>
 
           <div id="viewDetalle" class="hidden">
             <div class="section-header">
