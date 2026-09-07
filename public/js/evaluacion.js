@@ -61,7 +61,7 @@ async function loadEvaluacion() {
       cap.textContent = data.capacitacion || '';
       cap.hidden = !data.capacitacion;
     }
-    document.body.dataset.tema = temaCapacitacion(data.capacitacion);
+    document.body.dataset.tema = temaFinal(data);
 
     const duracionMin = (data.duracionMinutos > 0 ? data.duracionMinutos : 15) * 60;
 

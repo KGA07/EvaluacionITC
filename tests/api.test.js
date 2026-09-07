@@ -549,4 +549,103 @@ describe('ITC Evaluaciones API', () => {
       expect(relogin.status).toBe(200);
     });
   });
+
+  describe('Temas visuales por evaluacion (solo admin)', () => {
+    let token;
+    beforeEach(async () => {
+      await request(app)
+        .post('/api/login')
+        .send({ nombre: 'GKempe', password: '1234', tipo: 'profesor' })
+        .then(async (login) => {
+          await request(app)
+            .post('/api/profesor/alumnos')
+            .set('Authorization', `Bearer ${login.body.token}`)
+            .send({ nombre: 'alumno1', password: 'pass123', nombre_completo: 'Alumno Uno' });
+        });
+      const login = await request(app)
+        .post('/api/login')
+        .send({ nombre: 'alumno1', password: 'pass123', tipo: 'alumno' });
+      token = login.body.token;
+    });
+
+    it('asigna un tema valido y lo expone en evaluacion y resultado', async () => {
+      const profToken = await loginProfesor();
+      const creada = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${profToken}`)
+        .send({
+          capacitacion: 'Robotica con Wokwi',
+          porcentaje: 50,
+          preguntas: [{ tipo: 'opcion', pregunta: 'P1', opciones: ['A', 'B'], correcta: 1 }]
+        });
+      expect(creada.status).toBe(200);
+      const evId = creada.body.id;
+
+      // El profesor no puede asignar el tema
+      const sinPermiso = await request(app)
+        .put(`/api/admin/evaluaciones/${evId}/tema`)
+        .set('Authorization', `Bearer ${profToken}`)
+        .send({ tema: 'robotica' });
+      expect(sinPermiso.status).toBe(403);
+
+      // El admin asigna el tema
+      const adminToken = await loginAdmin();
+      const asignado = await request(app)
+        .put(`/api/admin/evaluaciones/${evId}/tema`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ tema: 'robotica' });
+      expect(asignado.status).toBe(200);
+      expect(asignado.body.tema).toBe('robotica');
+
+      // Tema invalido se rechaza
+      const invalido = await request(app)
+        .put(`/api/admin/evaluaciones/${evId}/tema`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ tema: 'no-existe' });
+      expect(invalido.status).toBe(400);
+
+      // Lista del profesor incluye el tema
+      const lista = await request(app).get('/api/profesor/evaluaciones').set('Authorization', `Bearer ${profToken}`);
+      const ev = lista.body.evaluaciones.find((e) => e.id === evId);
+      expect(ev.tema).toBe('robotica');
+
+      // La evaluacion llega al alumno con el tema asignado
+      const evAlumno = await request(app).get(`/api/evaluacion/${evId}`).set('Authorization', `Bearer ${token}`);
+      expect(evAlumno.body.tema).toBe('robotica');
+
+      const res = await request(app)
+        .post('/api/resultado')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ evaluacionId: evId, respuestas: [1], orden: evAlumno.body.orden });
+      expect(res.status).toBe(200);
+      expect(res.body.tema).toBe('robotica');
+    });
+
+    it('las evaluaciones por defecto usan tema automatico (auto)', async () => {
+      const profToken = await loginProfesor();
+      const lista = await request(app).get('/api/profesor/evaluaciones').set('Authorization', `Bearer ${profToken}`);
+      expect(lista.body.evaluaciones[0].tema).toBe('auto');
+
+      const ev = await request(app).get('/api/evaluacion/1').set('Authorization', `Bearer ${token}`);
+      expect(ev.body.tema).toBe('auto');
+    });
+
+    it('restablece a automatico al asignar auto', async () => {
+      const adminToken = await loginAdmin();
+      const asignado = await request(app)
+        .put('/api/admin/evaluaciones/1/tema')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ tema: 'pc' });
+      expect(asignado.status).toBe(200);
+
+      const reseteado = await request(app)
+        .put('/api/admin/evaluaciones/1/tema')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ tema: 'auto' });
+      expect(reseteado.status).toBe(200);
+
+      const ev = await request(app).get('/api/evaluacion/1').set('Authorization', `Bearer ${token}`);
+      expect(ev.body.tema).toBe('auto');
+    });
+  });
 });

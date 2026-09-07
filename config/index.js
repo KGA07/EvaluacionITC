@@ -43,6 +43,22 @@ const config = {
   defaultPorcentajeAprobacion: int(process.env.EVALUACION_DEFAULT_PORCENTAJE, 60),
   defaultDuracionMinutos: int(process.env.EVALUACION_DEFAULT_DURACION, 15),
 
+  // Temas visuales por capacitación que puede asignar el admin a cada evaluación.
+  // 'auto' significa tema detectado automáticamente por keywords (comportamiento actual).
+  temasAceptados: [
+    'robotica',
+    'programacion',
+    'marketing',
+    'diseno',
+    'pc',
+    'ia',
+    'administracion',
+    'tecnico',
+    'salud',
+    'ingles',
+    'general'
+  ],
+
   // Credenciales iniciales
   adminUser: process.env.ADMIN_USER || 'admin',
   adminPassword: process.env.ADMIN_PASSWORD || 'admin123',

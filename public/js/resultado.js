@@ -16,7 +16,7 @@ if (!resultado) {
       <a href="/dashboard" class="btn-volver" style="margin-top:16px;max-width:200px;">Volver al inicio</a>
     </div>`;
 } else {
-  document.body.dataset.tema = temaCapacitacion(resultado.capacitacion);
+  document.body.dataset.tema = temaFinal(resultado);
   const pct = Math.round((resultado.puntaje / resultado.totalPreguntas) * 100);
   const aprobado = resultado.aprobado;
   const porcentajeMin = resultado.porcentajeAprobacion || 60;

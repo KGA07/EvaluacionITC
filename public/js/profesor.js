@@ -519,6 +519,15 @@ document.getElementById('btnVolverLista').addEventListener('click', () => {
 // ── Gestionar Evaluaciones ───────────────────────────────────────────────────
 let evalsList = [];
 
+function opcionesTema(actual) {
+  return ['auto', ...Object.keys(TEMA_CAPACITACION)]
+    .map(
+      (slug) =>
+        `<option value="${slug}" ${actual === slug ? 'selected' : ''}>${slug === 'auto' ? 'Automatico' : TEMA_CAPACITACION[slug].etiqueta}</option>`
+    )
+    .join('');
+}
+
 async function loadEvaluaciones() {
   const container = document.getElementById('evalList');
   container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div></div>';
@@ -543,6 +552,18 @@ async function loadEvaluaciones() {
         <div class="eval-stat-row"><span class="label">Estado</span>
           <span class="eval-status-badge ${ev.activa ? 'status-disponible' : 'status-cerrada'}">${ev.activa ? 'Activa' : 'Inactiva'}</span>
         </div>
+        ${
+          isAdmin
+            ? `
+        <div class="eval-stat-row"><span class="label">Tema visual</span>
+          <span class="value" style="flex-wrap:wrap;justify-content:flex-end;">
+            <select class="tema-eval-select" data-id="${ev.id}" title="Asignar tema visual para esta capacitacion">
+              ${opcionesTema(ev.tema || 'auto')}
+            </select>
+          </span>
+        </div>`
+            : ''
+        }
         <div class="inline-actions" style="margin-top:12px;justify-content:center;">
           <button class="btn-sm" onclick="editarEvaluacion(${ev.id})">Editar</button>
           <button class="btn-sm" onclick="toggleEvaluacion(${ev.id})">${ev.activa ? 'Desactivar' : 'Activar'}</button>
@@ -552,6 +573,28 @@ async function loadEvaluaciones() {
       </div>`
         )
         .join('') || '<p style="color:var(--text-muted);text-align:center;">No hay evaluaciones creadas.</p>';
+
+    if (isAdmin) {
+      container.querySelectorAll('.tema-eval-select').forEach((sel) => {
+        sel.addEventListener('change', async (e) => {
+          const id = parseInt(e.target.dataset.id, 10);
+          const tema = e.target.value;
+          try {
+            const res = await apiFetch(`/admin/evaluaciones/${id}/tema`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tema })
+            });
+            const resp = await res.json();
+            if (!res.ok) throw new Error(parseError(resp));
+            toast('Tema visual asignado.', 'success');
+          } catch (err) {
+            toast(`Error: ${err.message}`, 'error');
+            loadEvaluaciones();
+          }
+        });
+      });
+    }
   } catch (err) {
     container.innerHTML = `<p style="color:var(--error);text-align:center;padding:20px;">${err.message}</p>`;
   }

@@ -1,5 +1,6 @@
 'use strict';
 const { body, param, query, validationResult } = require('express-validator');
+const config = require('../config');
 
 function handleValidation(req, res, next) {
   const errors = validationResult(req);
@@ -127,6 +128,12 @@ const validations = {
       .withMessage('La contrasena es obligatoria.')
       .isLength({ min: 4, max: 100 })
       .withMessage('La contrasena debe tener al menos 4 caracteres.')
+  ],
+  temaEvaluacion: [
+    body('tema')
+      .trim()
+      .isIn(['auto', ...config.temasAceptados])
+      .withMessage('Tema invalido.')
   ],
   cambiarPasswordPropia: [
     body('passwordActual').notEmpty().withMessage('Ingresa tu contrasena actual.'),

@@ -197,12 +197,21 @@ function temaCapacitacion(nombre) {
   return 'general';
 }
 
+// Tema final: usa el tema asignado por el admin si es valido;
+// 'auto'/ausente = deteccion automatica por keywords.
+function temaFinal(data) {
+  const tema = data && data.tema;
+  if (typeof tema === 'string' && tema !== 'auto' && TEMA_CAPACITACION[tema]) return tema;
+  return temaCapacitacion(data && data.capacitacion);
+}
+
 window.toast = toast;
 window.apiFetch = apiFetch;
 window.parseError = parseError;
 window.logout = logout;
 window.escapeHtml = escapeHtml;
 window.temaCapacitacion = temaCapacitacion;
+window.temaFinal = temaFinal;
 window.TEMA_CAPACITACION = TEMA_CAPACITACION;
 
 // ── PWA (8.4) ───────────────────────────────────────────────────────────────

@@ -6,6 +6,19 @@ const { registrarLog } = require('../utils/audit');
 
 const REFRESH_TOKEN_KEY = 'refreshTokens';
 
+// ── Tema visual por capacitacion ────────────────────────────────────────────
+async function asignarTemaEvaluacion(req, res) {
+  const data = await db.loadData();
+  const ev = data.evaluaciones.find((e) => e.id === parseInt(req.params.id, 10));
+  if (!ev) return res.status(404).json({ error: 'Evaluacion no encontrada.' });
+
+  const tema = String(req.body.tema || 'auto');
+  ev.tema = tema;
+  registrarLog(data, 'asignar_tema', { evaluacionId: ev.id, capacitacion: ev.capacitacion, tema }, req.user);
+  await db.saveData();
+  res.json({ ok: true, tema });
+}
+
 // ── Profesores ─────────────────────────────────────────────────────────────
 async function listarProfesores(req, res) {
   const data = await db.loadData();
@@ -109,6 +122,7 @@ module.exports = {
   crearProfesor,
   eliminarProfesor,
   cambiarPasswordProfesor,
+  asignarTemaEvaluacion,
   verLogs,
   estadisticasGlobales
 };

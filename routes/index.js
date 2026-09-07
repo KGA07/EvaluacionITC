@@ -123,5 +123,13 @@ router.put(
 );
 router.get('/admin/logs', auth, adminAuth, adminCtrl.verLogs);
 router.get('/admin/estadisticas', auth, adminAuth, adminCtrl.estadisticasGlobales);
+router.put(
+  '/admin/evaluaciones/:id/tema',
+  auth,
+  adminAuth,
+  validations.temaEvaluacion,
+  handleValidation,
+  adminCtrl.asignarTemaEvaluacion
+);
 
 module.exports = router;
