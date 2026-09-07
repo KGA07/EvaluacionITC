@@ -41,6 +41,7 @@ function seedData() {
         porcentaje: config.defaultPorcentajeAprobacion,
         duracionMinutos: config.defaultDuracionMinutos,
         activa: true,
+        tema: 'marketing',
         preguntas: [
           {
             id: 1,
@@ -166,6 +167,7 @@ function seedData() {
         porcentaje: config.defaultPorcentajeAprobacion,
         duracionMinutos: config.defaultDuracionMinutos,
         activa: true,
+        tema: 'tecnico',
         preguntas: [
           {
             id: 1,
@@ -268,6 +270,7 @@ function seedData() {
         porcentaje: config.defaultPorcentajeAprobacion,
         duracionMinutos: config.defaultDuracionMinutos,
         activa: true,
+        tema: 'diseno',
         preguntas: [
           {
             id: 1,
@@ -379,6 +382,7 @@ function seedData() {
         porcentaje: config.defaultPorcentajeAprobacion,
         duracionMinutos: config.defaultDuracionMinutos,
         activa: true,
+        tema: 'pc',
         preguntas: [
           {
             id: 1,
@@ -486,6 +490,7 @@ function seedData() {
         porcentaje: config.defaultPorcentajeAprobacion,
         duracionMinutos: config.defaultDuracionMinutos,
         activa: true,
+        tema: 'ia',
         preguntas: [
           {
             id: 1,
@@ -603,6 +608,7 @@ function seedData() {
         porcentaje: config.defaultPorcentajeAprobacion,
         duracionMinutos: config.defaultDuracionMinutos,
         activa: true,
+        tema: 'administracion',
         preguntas: [
           {
             id: 1,

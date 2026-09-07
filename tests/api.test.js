@@ -621,13 +621,21 @@ describe('ITC Evaluaciones API', () => {
       expect(res.body.tema).toBe('robotica');
     });
 
-    it('las evaluaciones por defecto usan tema automatico (auto)', async () => {
+    it('las evaluaciones creadas sin tema usan automatico (auto)', async () => {
       const profToken = await loginProfesor();
-      const lista = await request(app).get('/api/profesor/evaluaciones').set('Authorization', `Bearer ${profToken}`);
-      expect(lista.body.evaluaciones[0].tema).toBe('auto');
+      const creada = await request(app)
+        .post('/api/profesor/evaluaciones')
+        .set('Authorization', `Bearer ${profToken}`)
+        .send({
+          capacitacion: 'Robotica con Wokwi',
+          porcentaje: 50,
+          preguntas: [{ tipo: 'opcion', pregunta: 'P1', opciones: ['A', 'B'], correcta: 1 }]
+        });
+      expect(creada.status).toBe(200);
 
-      const ev = await request(app).get('/api/evaluacion/1').set('Authorization', `Bearer ${token}`);
-      expect(ev.body.tema).toBe('auto');
+      const lista = await request(app).get('/api/profesor/evaluaciones').set('Authorization', `Bearer ${profToken}`);
+      const ev = lista.body.evaluaciones.find((e) => e.id === creada.body.id);
+      expect(ev.tema).toBe('auto');
     });
 
     it('restablece a automatico al asignar auto', async () => {
