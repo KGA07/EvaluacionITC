@@ -44,6 +44,8 @@ async function cargarCertificado() {
 
     main.innerHTML = `
       <div class="certificado-sheet" role="document" aria-label="Certificado de aprobacion">
+        <div class="cert-top-stripe"></div>
+
         <header class="cert-header">
           <div class="cert-header-side">
             <img src="/img/logo-itc.svg" alt="Informatic Training Center" class="cert-header-logo">
@@ -58,42 +60,44 @@ async function cargarCertificado() {
           </div>
         </header>
 
-        <section class="cert-apertura">
-          <p class="cert-por-cuanto">Por cuanto</p>
-          <h2 class="cert-alumno">${escapeHtml(c.alumno)}</h2>
-          ${dni ? `<p class="cert-dni">DNI: ${dni}</p>` : ''}
-        </section>
+        <div class="cert-body">
+          <section class="cert-apertura">
+            <p class="cert-por-cuanto">Por cuanto</p>
+            <h2 class="cert-alumno">${escapeHtml(c.alumno)}</h2>
+            ${dni ? `<p class="cert-dni">DNI: ${dni}</p>` : ''}
+          </section>
 
-        <section class="cert-cuerpo">
-          <p>
-            Ha participado y aprobado la capacitacion en &laquo;${escapeHtml(c.capacitacion)}&raquo;,
-            superando la evaluacion correspondiente con un puntaje de
-            ${c.puntaje}/${c.totalPreguntas} (${c.porcentajeObtenido}%), siendo el minimo
-            requerido del ${c.porcentajeMinimo}%.
-          </p>
-          <p class="cert-resolucion">Se le extiende el presente certificado de <strong class="cert-aprobacion">APROBACION</strong>.</p>
-        </section>
+          <section class="cert-cuerpo">
+            <p>
+              Ha participado y aprobado la capacitacion en &laquo;${escapeHtml(c.capacitacion)}&raquo;,
+              superando la evaluacion correspondiente con un puntaje de
+              ${c.puntaje}/${c.totalPreguntas} (${c.porcentajeObtenido}%), siendo el minimo
+              requerido del ${c.porcentajeMinimo}%.
+            </p>
+            <p class="cert-resolucion">Se le extiende el presente certificado de <strong class="cert-aprobacion">APROBACION</strong>.</p>
+          </section>
 
-        <section class="cert-firmas">
-          <div class="cert-firma">
-            <div class="cert-firma-linea"></div>
-            <div class="cert-firma-nombre">${escapeHtml(c.director)}</div>
-            <div class="cert-firma-cargo">${escapeHtml(c.directorCargo)}</div>
-            <div class="cert-firma-label">Firma del Director</div>
-          </div>
-          <div class="cert-firma">
-            <div class="cert-firma-linea"></div>
-            <div class="cert-firma-nombre">${escapeHtml(c.instructor)}</div>
-            <div class="cert-firma-cargo">${escapeHtml(c.instructorCargo)}</div>
-            <div class="cert-firma-label">Firma del Instructor</div>
-          </div>
-        </section>
+          <section class="cert-firmas">
+            <div class="cert-firma">
+              <div class="cert-firma-linea"></div>
+              <div class="cert-firma-nombre">${escapeHtml(c.director)}</div>
+              <div class="cert-firma-cargo">${escapeHtml(c.directorCargo)}</div>
+            </div>
+            <div class="cert-firma">
+              <div class="cert-firma-linea"></div>
+              <div class="cert-firma-nombre">${escapeHtml(c.instructor)}</div>
+              <div class="cert-firma-cargo">${escapeHtml(c.instructorCargo)}</div>
+            </div>
+          </section>
+        </div>
 
         <footer class="cert-footer">
           <div class="cert-footer-item cert-fecha">Fecha de Emision: ${formatFechaLarga(c.fecha)}</div>
           <div class="cert-footer-item cert-validacion">Para verificar la autenticidad de este documento acceda a: ${escapeHtml(sitio)}/certificado e ingrese el codigo.</div>
           <div class="cert-footer-item cert-codigo">Codigo del certificado: ${escapeHtml(c.codigo)}</div>
         </footer>
+
+        <div class="cert-bottom-stripe"></div>
       </div>`;
   } catch (err) {
     main.innerHTML = `<div class="loading-container"><h3>Error al cargar el certificado</h3><p>${err.message}</p></div>`;
