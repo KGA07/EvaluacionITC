@@ -150,6 +150,7 @@ function renderAlumnosTable(alumnos) {
         <div class="inline-actions">
           <button class="btn-sm" onclick="verDetalle(${a.id})">Detalle / Reset</button>
           <button class="btn-sm" onclick="asignarPruebas(${a.id})">Pruebas</button>
+          <button class="btn-sm" onclick="changeDni(${a.id})">DNI</button>
           <button class="btn-sm" onclick="changePassword(${a.id})">Contrasena</button>
           <button class="btn-sm danger" onclick="deleteStudent(${a.id}, '${escapeHtml(a.nombre)}')">Eliminar</button>
         </div>
@@ -425,6 +426,46 @@ function changePassword(id) {
 }
 
 document.getElementById('btnPwCancel').addEventListener('click', () => pwModal.classList.remove('visible'));
+
+// ── Editar DNI alumno ───────────────────────────────────────────────────────
+const dniModal = document.getElementById('dniModal');
+const dniForm = document.getElementById('dniForm');
+const dniError = document.getElementById('dniModalError');
+const dniErrorText = document.getElementById('dniModalErrorText');
+
+function changeDni(id) {
+  const a = allData.alumnosDetalle.find((x) => x.id === id);
+  if (!a) return;
+  document.getElementById('dniModalSubtitle').textContent = a.nombre_completo;
+  document.getElementById('dniUserId').value = id;
+  document.getElementById('alumnoDni').value = a.dni || '';
+  dniError.classList.remove('visible');
+  dniModal.classList.add('visible');
+}
+window.changeDni = changeDni;
+
+document.getElementById('btnDniCancel').addEventListener('click', () => dniModal.classList.remove('visible'));
+
+dniForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const userId = parseInt(document.getElementById('dniUserId').value, 10);
+  const dni = document.getElementById('alumnoDni').value.trim();
+  dniError.classList.remove('visible');
+  try {
+    const res = await apiFetch(`/profesor/alumnos/${userId}/dni`, {
+      method: 'PUT',
+      body: JSON.stringify({ dni })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(parseError(data));
+    dniModal.classList.remove('visible');
+    toast('DNI actualizado correctamente.', 'success');
+    loadData();
+  } catch (err) {
+    dniErrorText.textContent = err.message;
+    dniError.classList.add('visible');
+  }
+});
 
 // ── Asignar pruebas (evaluaciones) a un alumno ──────────────────────────────
 const pruebasModal = document.getElementById('pruebasModal');

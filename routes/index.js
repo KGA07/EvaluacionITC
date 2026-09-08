@@ -67,6 +67,14 @@ router.get('/profesor/alumnos', auth, profAuth, profCtrl.listarAlumnos);
 router.post('/profesor/alumnos', auth, profAuth, validations.crearAlumno, handleValidation, profCtrl.crearAlumno);
 router.delete('/profesor/alumnos/:id', auth, profAuth, profCtrl.eliminarAlumno);
 router.put(
+  '/profesor/alumnos/:id/dni',
+  auth,
+  profAuth,
+  validations.editarDniAlumno,
+  handleValidation,
+  profCtrl.editarDniAlumno
+);
+router.put(
   '/profesor/alumnos/:id/password',
   auth,
   profAuth,

@@ -224,6 +224,28 @@
     </div>
   </div>
 
+  <!-- Modal: editar DNI alumno -->
+  <div class="modal-overlay" id="dniModal">
+    <div class="modal-card">
+      <div class="modal-title">Editar DNI</div>
+      <div class="modal-subtitle" id="dniModalSubtitle"></div>
+      <form id="dniForm" class="login-form">
+        <div class="form-group">
+          <label for="alumnoDni">DNI</label>
+          <div class="input-wrapper">
+            <input type="text" id="alumnoDni" placeholder="Ej: 30123456" inputmode="numeric" pattern="[0-9]{7,8}" maxlength="8">
+          </div>
+        </div>
+        <input type="hidden" id="dniUserId">
+        <div class="error-message" id="dniModalError"><span id="dniModalErrorText"></span></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" id="btnDniCancel">Cancelar</button>
+          <button type="submit" class="btn-modal-confirm" id="btnDniSave">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: crear/editar evaluacion -->
   <div class="modal-overlay" id="evalModal">
     <div class="modal-card modal-card-lg">

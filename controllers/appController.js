@@ -394,6 +394,7 @@ async function certificado(req, res) {
   const ev = data.evaluaciones.find((e) => e.id === evId);
   if (!ev) return res.status(404).json({ error: 'Evaluacion no encontrada.' });
 
+  const alumno = data.users.find((u) => u.id === req.user.id) || req.user;
   const intentos = data.intentos
     .filter((i) => i.userId === req.user.id && i.evaluacionId === evId)
     .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
@@ -405,8 +406,8 @@ async function certificado(req, res) {
   res.json({
     certificado: {
       codigo: `ITC-${String(evId).padStart(3, '0')}-${String(aprobadoIntento.id).padStart(4, '0')}`,
-      alumno: req.user.nombre_completo || req.user.nombre,
-      dni: req.user.dni || '',
+      alumno: alumno.nombre_completo || alumno.nombre,
+      dni: alumno.dni || '',
       capacitacion: ev.capacitacion,
       titulo: ev.titulo,
       puntaje: aprobadoIntento.puntaje,

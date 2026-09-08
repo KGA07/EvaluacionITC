@@ -115,6 +115,15 @@ const validations = {
       .isInt({ min: 1000000, max: 99999999 })
       .withMessage('El DNI debe tener entre 7 y 8 digitos.')
   ],
+  editarDniAlumno: [
+    body('dni')
+      .optional({ values: 'falsy' })
+      .trim()
+      .isNumeric()
+      .withMessage('El DNI debe contener solo numeros.')
+      .isInt({ min: 1000000, max: 99999999 })
+      .withMessage('El DNI debe tener entre 7 y 8 digitos.')
+  ],
   crearProfesor: [
     body('nombre')
       .trim()

@@ -68,6 +68,19 @@ async function crearAlumno(req, res) {
   res.json({ id: newId, nombre, nombre_completo: nombre_completo || nombre, dni: dni || '' });
 }
 
+// ── Editar DNI de alumno ──────────────────────────────────────────────────
+async function editarDniAlumno(req, res) {
+  const { dni } = req.body;
+  const data = await db.loadData();
+  const user = data.users.find((u) => u.id === parseInt(req.params.id, 10) && u.tipo === 'alumno');
+  if (!user) return res.status(404).json({ error: 'Alumno no encontrado.' });
+
+  user.dni = dni ? String(dni).trim() : '';
+  registrarLog(data, 'editar_dni_alumno', { alumnoId: user.id, nombre: user.nombre }, req.user);
+  await db.saveData();
+  res.json({ ok: true, id: user.id, dni: user.dni });
+}
+
 // ── Eliminar alumno ────────────────────────────────────────────────────────
 async function eliminarAlumno(req, res) {
   const data = await db.loadData();
@@ -409,6 +422,7 @@ async function exportarCSV(req, res) {
 module.exports = {
   listarAlumnos,
   crearAlumno,
+  editarDniAlumno,
   eliminarAlumno,
   cambiarPassword,
   resetearIntentos,

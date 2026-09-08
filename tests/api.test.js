@@ -108,6 +108,37 @@ describe('ITC Evaluaciones API', () => {
       expect(res.status).toBe(400);
     });
 
+    it('edita el DNI de un alumno existente', async () => {
+      const creado = await request(app)
+        .post('/api/profesor/alumnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ nombre: 'alu_dni', password: 'pass123', nombre_completo: 'Alumno DNI' });
+      expect(creado.status).toBe(200);
+
+      const edit = await request(app)
+        .put(`/api/profesor/alumnos/${creado.body.id}/dni`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ dni: '40123456' });
+      expect(edit.status).toBe(200);
+      expect(edit.body.dni).toBe('40123456');
+
+      const listado = await request(app).get('/api/profesor/alumnos').set('Authorization', `Bearer ${token}`);
+      const alumno = listado.body.alumnos.find((a) => a.id === creado.body.id);
+      expect(alumno.dni).toBe('40123456');
+    });
+
+    it('rechaza un DNI invalido al editarlo', async () => {
+      const creado = await request(app)
+        .post('/api/profesor/alumnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ nombre: 'alu_dni2', password: 'pass123' });
+      const res = await request(app)
+        .put(`/api/profesor/alumnos/${creado.body.id}/dni`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ dni: 'abc' });
+      expect(res.status).toBe(400);
+    });
+
     it('bloquea acceso de no-profesor', async () => {
       const res = await request(app).get('/api/profesor/alumnos').set('Authorization', 'Bearer token-invalido');
       expect(res.status).toBe(401);
