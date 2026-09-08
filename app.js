@@ -35,7 +35,9 @@ const publicDir =
   process.env.SERVE_BUILT === '1' ? path.join(__dirname, 'public-dist') : path.join(__dirname, 'public');
 app.use(
   express.static(publicDir, {
-    maxAge: config.nodeEnv === 'production' ? '1d' : 0,
+    // maxAge corto: al rediseñar el certificado los browsers servian versiones
+    // cacheadas por 24h. Con 5 minutos cualquier update llega en breve.
+    maxAge: config.nodeEnv === 'production' ? '5m' : 0,
     etag: true
   })
 );
@@ -58,7 +60,15 @@ const pages = {
   '/certificado': 'certificado.html'
 };
 Object.entries(pages).forEach(([route, file]) => {
-  app.get(route, (req, res) => res.sendFile(path.join(publicDir, file)));
+  app.get(route, (req, res) => {
+    const send = () => res.sendFile(path.join(publicDir, file));
+    // El certificado nunca debe venir de una cache vieja: quedo obsoleto al
+    // redesear el template y los browsers sirvieron la version anterior.
+    if (route === '/certificado') {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    }
+    send();
+  });
 });
 
 // 404 y manejo de errores
